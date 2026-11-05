@@ -500,6 +500,19 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
 .fig-spring{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
 .fig-dash{stroke:var(--ink-faint);stroke-width:1.1;stroke-dasharray:4 4}
 .fig-thin{stroke:var(--ink-soft);stroke-width:1.2}
+/* ---------- bináris helyiérték-táblázat ---------- */
+.bits{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem;max-width:25rem;margin:.7rem 0 .35rem 0}
+.bit{display:flex;flex-direction:column;align-items:center;gap:.1rem;background:var(--paper-raised);
+  border:1px solid var(--rule);border-radius:var(--radius);padding:.35rem .1rem}
+.bit b{font-family:"JetBrains Mono",monospace;font-size:.6rem;font-weight:500;color:var(--ink-faint)}
+.bit i{font-family:"JetBrains Mono",monospace;font-style:normal;font-size:1.15rem;font-weight:700;color:var(--ink-faint)}
+.bit.on{border-color:var(--accent);background:var(--accent-soft)}
+.bit.on b{color:var(--accent)}
+.bit.on i{color:var(--accent-ink)}
+.bits-sum{font-family:"JetBrains Mono",monospace;font-size:.92rem;color:var(--ink-soft);margin:0 0 1.1rem 0}
+.bits-sum b{color:var(--correct);font-size:1.05rem}
+.bits-cap{font-family:"JetBrains Mono",monospace;font-size:.62rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-faint);margin:.9rem 0 -.3rem 0}
 .hidden{display:none!important}
 /* ---------- írásbeli (begépelős) ---------- */
 .wlist{list-style:none;counter-reset:w;margin:0 0 1.5rem 0;padding:0;display:flex;flex-direction:column;gap:.45rem}
@@ -564,7 +577,7 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
     <p class="eyebrow" id="lesson-eyebrow"></p>
     <h1 id="lesson-heading"></h1>
     <article class="lesson" id="lesson-body"></article>
-    <p class="eyebrow">Gyakorlás</p>
+    <p class="eyebrow" id="lesson-practice-label">Gyakorlás</p>
     <div class="actions" id="lesson-actions"></div>
   </section>
 
@@ -901,6 +914,18 @@ function svgSpring(o){
     ${wall}${spring}${body}${dl}${arrows}
     ${o.note ? txt(150, 188, o.note, "fig-side") : ""}
   </svg>`;
+}
+
+/* ---------- bináris oktett ábrája: helyiértékek fent, bitek lent ---------- */
+const HELYI = [128, 64, 32, 16, 8, 4, 2, 1];
+function bitRow(n, cim){
+  const bits = n.toString(2).padStart(8, "0").split("").map(Number);
+  const cells = bits.map((b, i) =>
+    `<span class="bit${b ? " on" : ""}"><b>${HELYI[i]}</b><i>${b}</i></span>`).join("");
+  const tagok = HELYI.filter((h, i) => bits[i]);
+  return (cim ? `<p class="bits-cap">${cim}</p>` : "") +
+    `<div class="bits">${cells}</div>` +
+    `<p class="bits-sum">${tagok.join(" + ") || "0"} = <b>${n}</b></p>`;
 }
 
 const figHTML = f => !f ? "" :
@@ -2760,6 +2785,79 @@ const UJKOR_HITVITAK = `
 </ul>
 `;
 
+/* ================= HÁLÓZATOK: SZÁMRENDSZEREK (CCNA ITN 5.1) ================= */
+const ITN_SZAMREND = `
+<p class="lead">Az IPv4-cím valójában <b>32 bit</b>: négy darab 8 bites oktett. Mi pontozott decimálisban írjuk le (192.168.10.10), az eszköz viszont binárisan dolgozik vele — ezért kell tudni oda-vissza váltani.</p>
+
+<h2>A helyiértékek</h2>
+<p>Egy oktett 8 bit. Minden bitnek fix helyiértéke van, balról jobbra feleződve:</p>
+${bitRow(255, "mind a nyolc bit bekapcsolva — ez a legnagyobb érték")}
+<ul>
+  <li>a helyiértékek a 2 hatványai: 2⁷ = 128 · 2⁶ = 64 · 2⁵ = 32 · 2⁴ = 16 · 2³ = 8 · 2² = 4 · 2¹ = 2 · 2⁰ = 1</li>
+  <li>egy oktett értéke így <b>0 és 255</b> között lehet (00000000 … 11111111)</li>
+  <li>a bit csak <b>0 vagy 1</b> lehet: a 0 azt jelenti, hogy az a helyiérték nem számít bele, az 1 azt, hogy igen</li>
+</ul>
+
+<h2>Binárisból decimálisba</h2>
+<p>Írd a bitek fölé a helyiértékeket, és <b>add össze azokat, ahol 1-es áll</b>. Ennyi az egész.</p>
+${bitRow(192, "11000000")}
+${bitRow(168, "10101000")}
+${bitRow(10, "00001010")}
+<p>A négy oktett együtt adja ki a címet:</p>
+<div class="column">11000000.10101000.00001010.00001010
+       192  .   168   .    10    .    10</div>
+
+<h2>Decimálisból binárisba</h2>
+<p>Haladj <b>balról jobbra</b> a helyiértékeken, és minden lépésben kérdezd meg: <b>belefér-e</b>?</p>
+<ul>
+  <li>ha a szám <b>nagyobb vagy egyenlő</b> a helyiértéknél → a bit <b>1</b>, és <b>kivonod</b> a helyiértéket</li>
+  <li>ha <b>kisebb</b> → a bit <b>0</b>, a szám marad</li>
+  <li>a végén a maradéknak <b>0</b>-nak kell lennie</li>
+</ul>
+<p>Példa: <b>168</b></p>
+<div class="column">168 ≥ 128 ?  igen → 1,  marad 168 − 128 = 40
+ 40 ≥  64 ?  nem  → 0
+ 40 ≥  32 ?  igen → 1,  marad  40 −  32 =  8
+  8 ≥  16 ?  nem  → 0
+  8 ≥   8 ?  igen → 1,  marad   8 −   8 =  0
+  0 ≥   4 ?  nem  → 0
+  0 ≥   2 ?  nem  → 0
+  0 ≥   1 ?  nem  → 0
+
+eredmény: <b>10101000</b></div>
+${bitRow(168, "ellenőrzés: add vissza össze")}
+
+<h2>Másik módszer: osztogatás 2-vel</h2>
+<p>Ugyanaz az eredmény, csak más úton: oszd a számot 2-vel, jegyezd fel a <b>maradékot</b>, és így tovább, amíg 0-t nem kapsz. A maradékokat <b>alulról felfelé</b> olvasd össze.</p>
+<div class="column">168 : 2 =  84   maradék 0   ↑
+ 84 : 2 =  42   maradék 0   │
+ 42 : 2 =  21   maradék 0   │
+ 21 : 2 =  10   maradék 1   │  erre
+ 10 : 2 =   5   maradék 0   │  olvasd
+  5 : 2 =   2   maradék 1   │
+  2 : 2 =   1   maradék 0   │
+  1 : 2 =   0   maradék 1   │
+
+eredmény: <b>10101000</b>  (8 bitre nullákkal egészítsd ki balról)</div>
+
+<div class="note">
+  <p class="note-label">Amit érdemes fejből tudni</p>
+  <p><span class="m">255 = 11111111</span> · <span class="m">0 = 00000000</span> · <span class="m">128 = 10000000</span> · <span class="m">192 = 11000000</span> · <span class="m">224 = 11100000</span> · <span class="m">240 = 11110000</span> · <span class="m">248 = 11111000</span> · <span class="m">252 = 11111100</span></p>
+  <p>Ezek az alhálózati maszkokban jönnek elő: a maszk mindig <b>csupa egyes, utána csupa nulla</b>.</p>
+</div>
+
+<h2>Még két példa</h2>
+${bitRow(172, "172 — az első oktett a 172.16.x.x magáncímeknél")}
+${bitRow(100, "100")}
+
+<div class="note trap">
+  <p class="note-label">Tipikus hibák</p>
+  <p>Az oktett <b>8 bit</b>: ha kevesebb jön ki, egészítsd ki <b>balról</b> nullákkal (10 → 00001010, nem 1010).</p>
+  <p>255-nél nagyobb szám nem fér egy oktettbe — ha ilyet kapsz eredményül, elszámoltad.</p>
+  <p>A helyiértékek balról jobbra <b>csökkennek</b>: a bal szélső a 128, a jobb szélső az 1.</p>
+</div>
+`;
+
 const SUBJECTS = [
   {
     id: "matek",
@@ -3975,6 +4073,17 @@ const SUBJECTS = [
         hint: ITN2_HINT,
         build: writtenCmds(sec)
       })),
+      {
+        kind: "modul5",
+        id: "itn-5-jegy",
+        lesson: true,
+        title: "Számrendszerek — jegyzet (5.1)",
+        sub: "helyiértékek, binárisból decimálisba és vissza, lépésről lépésre",
+        eyebrow: "CCNA ITN · Modul 5",
+        heading: "Decimális ↔ bináris átváltás",
+        body: ITN_SZAMREND,
+        practice: []
+      },
       {
         kind: "irasbeli2",
         id: "itn-ir-m2",
@@ -7118,7 +7227,9 @@ if(!PUBLIC_BUILD) (function(){
     { id:"itn-m1", title:"Modul 1 — A hálózat ma", sub:"1.1–1.5: szakaszkvízek, vegyes és írásbeli",
       kinds:["modul1", "dolgozat", "irasbeli"] },
     { id:"itn-m2", title:"Modul 2 — Switch és végberendezés alapkonfigurációja", sub:"2.1–2.8: szakaszkvízek, vegyes és írásbeli",
-      kinds:["modul2", "dolgozat2", "irasbeli2"] }
+      kinds:["modul2", "dolgozat2", "irasbeli2"] },
+    { id:"itn-m5", title:"Modul 5 — Számrendszerek", sub:"5.1: decimális ↔ bináris átváltás",
+      kinds:["modul5"] }
   ];
   const bent = new Set();
   const mappak = M.map(m => ({
@@ -7234,8 +7345,8 @@ const GROUPS = [
 /* a mappa alcíme: hány kvíz van benne, és van-e mellette olvasnivaló */
 const scoredKids = f => f.children.filter(c => !c.lesson && !c.free && !c.essay);
 const folderNote = f => {
-  const q = scoredKids(f).length;
-  return f.sub + " · " + q + " kvíz" + (f.children.length > q ? " + jegyzet" : "");
+  const q = scoredKids(f).length, jegyzet = f.children.length > q;
+  return f.sub + " · " + (q ? q + " kvíz" + (jegyzet ? " + jegyzet" : "") : "jegyzet");
 };
 
 /* mappa gomb: annyiból áll, hány kvíz van benne és ebből hányat csináltál már meg */
@@ -7302,6 +7413,7 @@ function openLesson(t){
     b.addEventListener("click", () => startQuiz(q));
     acts.appendChild(b);
   });
+  $("lesson-practice-label").classList.toggle("hidden", !acts.children.length);
   show("lesson");
 }
 

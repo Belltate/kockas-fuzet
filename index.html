@@ -500,6 +500,12 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
 .fig-spring{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
 .fig-dash{stroke:var(--ink-faint);stroke-width:1.1;stroke-dasharray:4 4}
 .fig-thin{stroke:var(--ink-soft);stroke-width:1.2}
+/* ---------- parabola-ábra ---------- */
+.fig-axis{stroke:currentColor;stroke-width:1.3;fill:none}
+.fig-axis.head{fill:currentColor;stroke:none}
+.fig-curve{fill:none;stroke:var(--accent);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.fig-dot{fill:var(--accent);stroke:var(--paper-raised);stroke-width:1.2}
+.fig-dot.root{fill:var(--correct)}
 /* ---------- bináris helyiérték-táblázat ---------- */
 .bits{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem;max-width:25rem;margin:.7rem 0 .35rem 0}
 .bit{display:flex;flex-direction:column;align-items:center;gap:.1rem;background:var(--paper-raised);
@@ -997,9 +1003,61 @@ function bitRow(n, cim){
     `<p class="bits-sum">${tagok.join(" + ") || "0"} = <b>${n}</b></p>`;
 }
 
+/* ---------- parabola: y = (x − u)² + v, koordinátarendszerrel ---------- */
+function svgParab(o){
+  const u = o.u, v = o.v;
+  /* ablak: a csúcs körül ±3,4 egység, de az origó mindig benne van */
+  const x0 = Math.min(-1.3, u - 3.4), x1 = Math.max(1.3, u + 3.4);
+  const y0 = Math.min(-1.3, v - 1.8), y1 = Math.max(1.8, v + 6.5);
+  const unit = Math.min(252 / (x1 - x0), 162 / (y1 - y0));
+  const W = (x1 - x0) * unit, H = (y1 - y0) * unit;
+  const ox = 24 + (252 - W) / 2 - x0 * unit, oy = 16 + (162 - H) / 2 + y1 * unit;
+  const X = x => +(ox + x * unit).toFixed(1), Y = y => +(oy - y * unit).toFixed(1);
+  const tick = unit >= 17 ? 1 : unit >= 11 ? 2 : 5;
+
+  let out = "";
+  /* tengelyek nyílheggyel */
+  out += `<line x1="${X(x0)}" y1="${Y(0)}" x2="${X(x1)}" y2="${Y(0)}" class="fig-axis"/>`;
+  out += `<polygon points="${X(x1) + 7},${Y(0)} ${X(x1)},${Y(0) - 3.5} ${X(x1)},${Y(0) + 3.5}" class="fig-axis head"/>`;
+  out += `<line x1="${X(0)}" y1="${Y(y0)}" x2="${X(0)}" y2="${Y(y1)}" class="fig-axis"/>`;
+  out += `<polygon points="${X(0)},${Y(y1) - 7} ${X(0) - 3.5},${Y(y1)} ${X(0) + 3.5},${Y(y1)}" class="fig-axis head"/>`;
+  out += txt(X(x1) + 1, Y(0) - 9, "x", "fig-side") + txt(X(0) - 11, Y(y1) + 3, "y", "fig-side");
+
+  /* osztások és számok */
+  for(let x = Math.ceil(x0); x <= Math.floor(x1); x++){
+    if(x === 0) continue;
+    out += `<line x1="${X(x)}" y1="${Y(0) - 3}" x2="${X(x)}" y2="${Y(0) + 3}" class="fig-axis"/>`;
+    if(x % tick === 0) out += txt(X(x), Y(0) + 13, String(x), "fig-side");
+  }
+  for(let y = Math.ceil(y0); y <= Math.floor(y1); y++){
+    if(y === 0) continue;
+    out += `<line x1="${X(0) - 3}" y1="${Y(y)}" x2="${X(0) + 3}" y2="${Y(y)}" class="fig-axis"/>`;
+    if(y % tick === 0) out += txt(X(0) - 11, Y(y), String(y), "fig-side", "end");
+  }
+
+  /* maga a parabola, az ablak tetejéig */
+  const r = Math.sqrt(Math.max(0, y1 - v));
+  const xa = Math.max(x0, u - r), xb = Math.min(x1, u + r);
+  const pts = [];
+  for(let i = 0; i <= 72; i++){
+    const x = xa + (xb - xa) * i / 72;
+    pts.push(X(x) + "," + Y((x - u) * (x - u) + v));
+  }
+  out += `<polyline points="${pts.join(" ")}" class="fig-curve"/>`;
+
+  /* csúcs és (ha egész) a gyökök */
+  out += `<circle cx="${X(u)}" cy="${Y(v)}" r="3.4" class="fig-dot"/>`;
+  if(o.showVertex) out += txt(X(u) + 8, Y(v) + 14, "(" + u + "; " + v + ")", "fig-ang", "start");
+  if(o.showRoots && v < 0){
+    const k = Math.sqrt(-v);
+    [u - k, u + k].forEach(x => { out += `<circle cx="${X(x)}" cy="${Y(0)}" r="3.4" class="fig-dot root"/>`; });
+  }
+  return `<svg viewBox="0 0 300 200" role="img" aria-label="Parabola grafikonja">${out}</svg>`;
+}
+
 const figHTML = f => !f ? "" :
   (f.type === "force" ? svgForce(f) : f.type === "spring" ? svgSpring(f) :
-   f.type === "right" ? svgRight(f) : svgIso(f)) +
+   f.type === "parab" ? svgParab(f) : f.type === "right" ? svgRight(f) : svgIso(f)) +
   '<span class="cap">' + (f.cap || "az ábra méretarányos") + '</span>';
 
 /* ================= ANGOL SZÓLISTA (Pioneer B1+; leckék: WORD_UNITS) ================= */
@@ -2927,21 +2985,232 @@ ${bitRow(100, "100")}
 </div>
 `;
 
+/* ================= MATEK: MÁSODFOKÚ EGYENLET (teljes négyzet, grafikus megoldás) ================= */
+/* kiírási segédek: mdSg(3) = " + 3", mdSg(−3) = " − 3"; a mínusz mindig valódi mínuszjel */
+const mdSg = n => (n < 0 ? " − " : " + ") + Math.abs(n);
+const mdNum = x => String(Math.round(x * 100) / 100).replace("-", "−").replace(".", ",");
+const mdPoly = (b, c) => "x²" + (b ? mdSg(b) + "x" : "") + (c ? mdSg(c) : "");
+const mdVert = (u, v) => "(x" + mdSg(-u) + ")²" + (v ? mdSg(v) : "");
+const mdPair = (a, b) => (a < b ? [a, b] : [b, a]).map(x => String(x).replace("-", "−")).join(" és ");
+const mdCo = (a, b) => "(" + String(a).replace("-", "−") + "; " + String(b).replace("-", "−") + ")";
+
+/* különböző rossz válaszok gyűjtése (az elsők a tipikus hibák) */
+function mdWrongs(right, cands){
+  const out = [];
+  for(const x of cands) if(x !== right && !out.includes(x) && out.length < 3) out.push(x);
+  return out;
+}
+
+/* --- átalakítás csúcspontos alakra --- */
+function mdAtalQ(u, c){
+  const b = -2 * u, v = c - u * u;
+  const right = mdVert(u, v);
+  return {
+    q: "Írd át csúcspontos alakra: " + mdPoly(b, c),
+    options: [right].concat(mdWrongs(right, [
+      mdVert(-u, v),            /* a zárójelbe rossz előjellel került a b fele */
+      mdVert(u, c),             /* kimaradt a (b/2)² kivonása */
+      mdVert(u, c + u * u),     /* kivonás helyett hozzáadás */
+      mdVert(u, v + 1), mdVert(-u, c)
+    ])),
+    correct: 0,
+    explain: "b = " + String(b).replace("-", "−") + ", a fele " + String(b / 2).replace("-", "−")
+      + " → " + mdVert(u, 0) + " = " + mdPoly(b, u * u) + ", ez " + (u * u)
+      + "-tel több a kelleténél, ezért levonjuk: " + mdPoly(b, c) + " = " + mdVert(u, 0) + mdSg(-u * u) + mdSg(c)
+      + " = " + right + "."
+  };
+}
+
+/* --- csúcs, megoldásszám, gyökök --- */
+function mdCsucsQ(u, v){
+  return {
+    q: "Hol van a parabola csúcsa? y = " + mdVert(u, v),
+    options: [mdCo(u, v)].concat(mdWrongs(mdCo(u, v), [mdCo(-u, v), mdCo(u, -v), mdCo(-u, -v), mdCo(v, u)])),
+    correct: 0,
+    explain: "A (x − u)² + v alakban a csúcs (u; v). Itt a zárójelben " + mdSg(-u).trim()
+      + " áll, tehát u = " + String(u).replace("-", "−") + ", a konstans v = " + String(v).replace("-", "−")
+      + " → csúcs " + mdCo(u, v) + ". A zárójelbeli előjel megfordul, a konstansé nem."
+  };
+}
+function mdCsucsPolyQ(u, c){
+  const b = -2 * u, v = c - u * u;
+  return {
+    q: "Hol van a parabola csúcsa? y = " + mdPoly(b, c),
+    options: [mdCo(u, v)].concat(mdWrongs(mdCo(u, v), [mdCo(u, c), mdCo(-u, v), mdCo(b, c), mdCo(u, -v)])),
+    correct: 0,
+    explain: "Előbb csúcspontos alakra hozzuk: " + mdPoly(b, c) + " = " + mdVert(u, v)
+      + ", innen a csúcs " + mdCo(u, v) + "."
+  };
+}
+const MD_DB = ["Két megoldása van", "Egy megoldása van", "Nincs valós megoldása", "Végtelen sok megoldása van"];
+function mdDbQ(u, v){
+  const i = v < 0 ? 0 : v === 0 ? 1 : 2;
+  return {
+    q: "Hány megoldása van: " + mdVert(u, v) + " = 0?",
+    options: MD_DB.slice(), correct: i,
+    explain: "A csúcs " + mdCo(u, v) + ", a parabola felfelé nyílik. "
+      + (v < 0 ? "A csúcs az x tengely alatt van, tehát kétszer metszi a tengelyt."
+        : v === 0 ? "A csúcs pont az x tengelyen van, tehát egy (kettős) megoldás van."
+        : "A csúcs az x tengely fölött van, a parabola nem éri el a tengelyt — nincs valós megoldás.")
+  };
+}
+function mdGyokQ(u, k){
+  const v = -k * k, right = mdPair(u - k, u + k);
+  return {
+    q: "Mik a megoldásai: " + mdVert(u, v) + " = 0?",
+    options: [right].concat(mdWrongs(right, [
+      mdPair(-u - k, -u + k),      /* az eltolás előjele megfordítva */
+      mdPair(-k, k),               /* az eltolás elfelejtve */
+      mdPair(u - k * k, u + k * k) /* a gyökvonás kimaradt */
+    ])),
+    correct: 0,
+    explain: mdVert(u, v) + " = 0 → (x" + mdSg(-u) + ")² = " + (k * k) + " → x" + mdSg(-u)
+      + " = ±" + k + " → x = " + String(u).replace("-", "−") + " ± " + k + ", tehát " + right + "."
+  };
+}
+
+/* --- ábraolvasás --- */
+const MD_SZOVEG = {
+  csucs: ["Mi a parabola csúcsa az ábrán?", "Olvasd le a grafikonról a csúcs koordinátáit!", "Hol van a görbe legalsó pontja?"],
+  egyenlet: ["Melyik függvény grafikonja látható?", "Melyik hozzárendelés illik az ábrára?", "Melyik képlet tartozik a rajzolt parabolához?"],
+  gyok: ["Olvasd le az ábráról: hol metszi a parabola az x tengelyt?", "Mely x értékeknél nulla a függvény az ábra szerint?", "Hol vannak az egyenlet megoldásai a rajzon?"]
+};
+function mdFigQ(u, v, type, vi){
+  const fig = { type:"parab", u:u, v:v, showRoots: v < 0 && Number.isInteger(Math.sqrt(-v)),
+                cap:"a rácsvonalak egységnyiek" };
+  if(type === "egyenlet"){
+    const right = "y = " + mdVert(u, v);
+    return { q:MD_SZOVEG.egyenlet[vi % 3], fig:fig,
+      options:[right].concat(mdWrongs(right, ["y = " + mdVert(-u, v), "y = " + mdVert(u, -v), "y = " + mdVert(v, u), "y = " + mdVert(-u, -v)])),
+      correct:0,
+      explain:"A csúcs " + mdCo(u, v) + ", ebből a hozzárendelés y = (x − u)² + v alakban " + mdVert(u, v)
+        + ". A zárójelben az eltolás ellentettje áll." };
+  }
+  if(type === "db") return Object.assign(mdDbQ(u, v), { q:"Hány megoldása van az ábra alapján: " + mdVert(u, v) + " = 0?", fig:fig });
+  if(type === "gyok"){
+    const k = Math.round(Math.sqrt(-v)), right = mdPair(u - k, u + k);
+    return { q:MD_SZOVEG.gyok[vi % 3], fig:fig,
+      options:[right].concat(mdWrongs(right, [mdPair(-u - k, -u + k), mdPair(-k, k), mdPair(u - k * k, u + k * k), mdCo(u, v)])),
+      correct:0,
+      explain:"A csúcs " + mdCo(u, v) + ", onnan ±" + k + " egységre metszi a tengelyt: " + right + "." };
+  }
+  return { q:MD_SZOVEG.csucs[vi % 3], fig:fig,
+    options:[mdCo(u, v)].concat(mdWrongs(mdCo(u, v), [mdCo(-u, v), mdCo(u, -v), mdCo(v, u), mdCo(-u, -v)])),
+    correct:0,
+    explain:"Keresd a legalsó pontot: x = " + String(u).replace("-", "−") + "-nál van, az értéke "
+      + String(v).replace("-", "−") + " → " + mdCo(u, v) + "." };
+}
+
+/* --- körök: minden körben más számok, kérdésenként egyedi szöveggel --- */
+const MD_U = [-4, -3, -2, -1, 1, 2, 3, 4, 5];
+const MD_C = [-9, -7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7];
+const MD_V = [-9, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4];
+const mdTake = (qs, k) => {
+  const out = [], latott = new Set();
+  for(const q of qs){ if(out.length === k) break; if(!latott.has(q.q)){ latott.add(q.q); out.push(q); } }
+  return out;
+};
+
+const mdAtalRound = () => mdTake(shuffled(MD_U).flatMap(u => shuffled(MD_C).slice(0, 2).map(c => mdAtalQ(u, c))), 10);
+
+const mdCsucsRound = () => {
+  const u = shuffled(MD_U), v = shuffled(MD_V);
+  const qs = []
+    .concat(u.slice(0, 4).map((x, i) => mdCsucsQ(x, v[i])))
+    .concat(shuffled(MD_U).slice(0, 3).map((x, i) => mdCsucsPolyQ(x, shuffled(MD_C)[0])))
+    .concat(shuffled(MD_U).slice(0, 3).map((x, i) => mdDbQ(x, [-4, -1, 0, 0, 2, 3][i % 6])))
+    .concat(shuffled(MD_U).slice(0, 2).map((x, i) => mdGyokQ(x, [2, 3, 4][i % 3])));
+  return mdTake(shuffled(qs), 12);
+};
+
+const mdAbraRound = () => {
+  const v3 = shuffled(MD_V), v4 = shuffled(MD_V);
+  const qs = []
+    .concat(shuffled(MD_U).slice(0, 3).map((u, i) => mdFigQ(u, v3[i], "csucs", i)))
+    .concat(shuffled(MD_U).slice(0, 3).map((u, i) => mdFigQ(u, v4[i], "egyenlet", i)))
+    .concat(shuffled(MD_U).slice(0, 3).map((u, i) => mdFigQ(u, shuffled([-4, -1, 0, 2, 3])[0], "db", i)))
+    .concat(shuffled(MD_U).slice(0, 3).map((u, i) => mdFigQ(u, [-4, -9, -1][i % 3], "gyok", i)));
+  return mdTake(shuffled(qs), 10);
+};
+
+const LESSON_MD = `
+<p class="lead">Az <span class="m">x² + bx + c</span> alakból nem látszik, hol van a parabola csúcsa. A teljes négyzetté kiegészítés átírja <span class="m">(x − u)² + v</span> alakra — innen a csúcs azonnal leolvasható, és már meg tudod rajzolni a grafikont.</p>
+
+<h2>1. A szabály</h2>
+<p><span class="m">x² + bx + c = (x + b/2)² − (b/2)² + c</span></p>
+<ol>
+  <li>vedd az <b>x együtthatójának a felét</b> (b/2) — ez megy a zárójelbe, <b>előjelestül</b></li>
+  <li>írd fel a zárójel négyzetét</li>
+  <li>ez <span class="m">(b/2)²</span>-tel <b>többet</b> ad a kelleténél → <b>vond ki</b></li>
+  <li>add hozzá a <span class="m">c</span>-t, és vond össze a két konstanst</li>
+</ol>
+<div class="note">
+  <p class="note-label">Miért kell kivonni</p>
+  <p><span class="m">(x − 2)² = x² − 4x + 4</span> — a négyzetre emelés <b>magától hozzátesz</b> egy <span class="m">+4</span>-et. Ha nem vonod ki, már nem ugyanazt a kifejezést írtad le.</p>
+</div>
+
+<h2>2. Az órai példa</h2>
+<div class="works">
+${work("x² − 4x − 1", [
+  ["b = −4,  fele: −2", "ez megy a zárójelbe"],
+  ["(x − 2)² = x² − 4x + <i>4</i>", "4-gyel több a kelleténél"],
+  ["(x − 2)² − 4 − 1", "levonjuk a 4-et, hozzávesszük a −1-et"]
+], "(x − 2)² − 5")}
+</div>
+<p>Ellenőrzés: bontsd vissza a zárójelet, vissza kell kapnod az eredetit.</p>
+
+<h2>3. Mit olvasol le a csúcspontos alakból</h2>
+<p><span class="m">y = (x − u)² + v</span></p>
+<ul>
+  <li><b>csúcs:</b> <span class="m">(u; v)</span> — a zárójelben lévő szám <b>ellentettje</b> az x-koordináta</li>
+  <li><b>szimmetriatengely:</b> <span class="m">x = u</span></li>
+  <li><b>nyitás:</b> felfelé, mert az <span class="m">x²</span> együtthatója pozitív</li>
+  <li><span class="m">u</span> = vízszintes eltolás, <span class="m">v</span> = függőleges eltolás az <span class="m">y = x²</span> parabolához képest</li>
+</ul>
+<div class="figure">${svgParab({ u:2, v:-5, showVertex:true, showRoots:true })}<span class="cap">y = (x − 2)² − 5 · csúcs (2; −5), a zöld pontok a megoldások</span></div>
+
+<h2>4. Grafikus megoldás</h2>
+<p>Az egyenlet megoldásai ott vannak, ahol a parabola <b>metszi az x tengelyt</b> (ott <span class="m">y = 0</span>).</p>
+<ol>
+  <li>hozd csúcspontos alakra, jelöld a csúcsot</li>
+  <li>számolj ki néhány pontot a csúcs két oldalán (szimmetrikusak)</li>
+  <li>kösd össze sima ívvel, és olvasd le a metszéspontokat</li>
+</ol>
+<div class="column">x │  0    1    2    3    4
+y │ −1   −4   <b>−5</b>   −4   −1</div>
+<p>Leolvasva: <span class="m">x₁ ≈ −0,2</span> és <span class="m">x₂ ≈ 4,2</span>. Pontosan a csúcspontos alakból jön:</p>
+<div class="column">(x − 2)² − 5 = 0
+(x − 2)²     = 5
+x − 2        = ±√5
+x            = 2 ± √5   ≈ 4,24  és  −0,24</div>
+
+<h2>5. Hány megoldás van</h2>
+<p>Felfelé nyíló parabolánál csak a csúcs függőleges helyzete számít:</p>
+<div class="figure">${svgParab({ u:1, v:-4, showVertex:true, showRoots:true })}<span class="cap">v &lt; 0 — a csúcs a tengely alatt: két megoldás</span></div>
+<div class="figure">${svgParab({ u:1, v:0, showVertex:true })}<span class="cap">v = 0 — a csúcs a tengelyen: egy (kettős) megoldás</span></div>
+<div class="figure">${svgParab({ u:1, v:2, showVertex:true })}<span class="cap">v &gt; 0 — a csúcs a tengely fölött: nincs valós megoldás</span></div>
+
+<div class="note trap">
+  <p class="note-label">Tipikus hibák</p>
+  <p><b>b felét</b> kell venni, nem b-t — és az előjelét is vinni kell: <span class="m">b = −4 → −2</span>.</p>
+  <p>A <span class="m">(b/2)²</span> kivonása kimarad → rossz konstans jön ki.</p>
+  <p>A csúcs koordinátái felcserélve vagy rossz előjellel: <span class="m">(x − 2)² − 5</span> → csúcs <span class="m">(2; −5)</span>, <b>nem</b> (−2; 5).</p>
+  <p>A grafikonról leolvasott gyök csak <b>közelítés</b> — a pontos értéket gyökvonással kapod.</p>
+</div>
+`;
+
 const SUBJECTS = [
   {
     id: "matek",
     name: "Matematika",
     calc: true,
     meta: "mat_1 · BZ",
-    desc: "Szögfüggvények (ctg nélkül) elmélet és gyakorlat ágon, plusz fejszámolás: × 11, az 5-re végződő és bármely kétjegyű szám négyzete.",
-    tagline: "A szögfüggvényeknél az elmélet megtanítja, mit miért csinálsz, a gyakorlat feladatokat ad ábrával. A fejszámolási trükköknél előbb olvasd el a magyarázatot — ott nincs számológép.",
+    desc: "Szögfüggvények (ctg nélkül), másodfokú egyenlet teljes négyzetté kiegészítéssel, és a Fejszámolás mappái: × 11, négyzetre emelés fejben.",
+    tagline: "Minden témánál előbb a magyarázat, utána a gyakorlás. A másodfokúnál a parabola rajza is ott van az ábrás kvízben; a Fejszámolás mappáiban nincs számológép.",
     groups: [
       { kind:"elmelet",   label:"Elmélet",   note:"szögfüggvények — mit miért csinálsz" },
       { kind:"gyakorlat", label:"Gyakorlat", note:"szögfüggvények — feladatok ábrával" },
-      { kind:"trukk11",   label:"Fejszámolás: × 11", note:"gyors szorzás fejben" },
-      { kind:"trukk5",    label:"Fejszámolás: 5-re végződő szám négyzete", note:"négyzetre emelés fejben" },
-      { kind:"trukkany",  label:"Fejszámolás: bármely kétjegyű szám négyzete", note:"három oszlop, átvitel jobbról" },
-      { kind:"trukkmix",  label:"Fejszámolás: vegyes", note:"mind a három trükk" }
+      { kind:"masodfoku", label:"Másodfokú egyenlet", note:"teljes négyzet és grafikus megoldás" }
     ],
     topics: [
       {
@@ -3155,6 +3424,94 @@ const SUBJECTS = [
             correct:1,
             explain:"A magasság felezi az alapot, tehát a derékszögű háromszögbe a/2 megy be. A másik oldala ugyanennek a hibának: kiszámolod az a/2-t, és elfelejted a végén kettővel visszaszorozni." }
         ]
+      },
+      {
+        kind: "masodfoku",
+        id: "md-lecke",
+        lesson: true,
+        title: "Így csináld — magyarázat",
+        sub: "a szabály, az órai példa, mit olvasol le a grafikonról",
+        eyebrow: "Matematika · másodfokú egyenlet",
+        heading: "Teljes négyzetté kiegészítés és grafikus megoldás",
+        body: LESSON_MD,
+        practice: ["md-elm", "md-atal", "md-csucs", "md-abra"]
+      },
+      {
+        kind: "masodfoku",
+        id: "md-elm",
+        title: "Szabályok — mit miért csinálsz",
+        sub: "a lépések értelme, a csúcspontos alak, a megoldások jelentése",
+        questions: [
+          { q:"Miért alakítjuk át az x² + bx + c kifejezést (x − u)² + v alakra?",
+            options:["Mert ebből azonnal leolvasható a parabola csúcsa","Mert így rövidebb a képlet","Mert csak így lehet behelyettesíteni","Mert az eredeti alak hibás"],
+            correct:0,
+            explain:"A csúcspontos alakból a csúcs (u; v) és a szimmetriatengely (x = u) ránézésre látszik, így a parabola megrajzolható." },
+          { q:"Mi kerül a zárójelbe x² + bx + c átalakításakor?",
+            options:["Az x együtthatójának a fele, előjelestül","Maga az x együtthatója","Az x együtthatójának a négyzete","A konstans tag fele"],
+            correct:0,
+            explain:"(x + b/2)² a kiindulás. b = −4 esetén a fele −2, tehát (x − 2)² lesz belőle." },
+          { q:"Miért kell levonni a (b/2)²-t?",
+            options:["Mert a zárójel négyzetre emelése magától hozzáad ennyit","Mert a konstans tagot mindig felezni kell","Mert különben negatív lesz az eredmény","Nem kell levonni, csak hozzáadni"],
+            correct:0,
+            explain:"(x − 2)² = x² − 4x + 4 — a +4 ott terem. Ha nem vonod ki, már nem az eredeti kifejezést írtad fel." },
+          { q:"Hol van az y = (x − 3)² + 2 parabola csúcsa?",
+            options:["(3; 2)","(−3; 2)","(2; 3)","(−3; −2)"],
+            correct:0,
+            explain:"A zárójelben lévő szám ellentettje az x-koordináta: x − 3 → u = 3. A konstans előjele nem fordul meg: v = 2." },
+          { q:"Mi az y = (x + 1)² − 4 parabola szimmetriatengelye?",
+            options:["x = −1","x = 1","x = −4","y = −4"],
+            correct:0,
+            explain:"A tengely a csúcson megy át függőlegesen: x = u. Itt x + 1 = x − (−1), tehát u = −1." },
+          { q:"Mit jelentenek grafikusan a másodfokú egyenlet megoldásai?",
+            options:["Az x tengellyel vett metszéspontok x-koordinátáit","A parabola csúcsát","Az y tengellyel vett metszéspontot","A szimmetriatengely helyét"],
+            correct:0,
+            explain:"Az egyenlet bal oldala ott nulla, ahol a grafikon érinti vagy metszi az x tengelyt — y = 0." },
+          { q:"Hány megoldása van a (x − 2)² − 5 = 0 egyenletnek?",
+            options:["Kettő, mert a csúcs az x tengely alatt van","Egy, mert a parabola felfelé nyílik","Nincs, mert negatív szám szerepel benne","Végtelen sok"],
+            correct:0,
+            explain:"A csúcs (2; −5) az x tengely alatt van, a felfelé nyíló parabola így kétszer metszi a tengelyt." },
+          { q:"Hány valós megoldása van a (x + 1)² + 3 = 0 egyenletnek?",
+            options:["Egy sincs","Egy","Kettő","Három"],
+            correct:0,
+            explain:"A csúcs (−1; 3) az x tengely fölött van, és a parabola felfelé nyílik — soha nem éri el a tengelyt. Négyzet + 3 nem lehet nulla." },
+          { q:"Mire jó a csúcspontos alak a pontos megoldásnál?",
+            options:["Átrendezve gyököt vonhatsz: (x − u)² = −v","Semmire, csak rajzoláshoz kell","Megadja az y tengelymetszetet","Megmutatja a parabola szélességét"],
+            correct:0,
+            explain:"(x − 2)² − 5 = 0 → (x − 2)² = 5 → x − 2 = ±√5 → x = 2 ± √5. A ± miatt kapsz két megoldást." },
+          { q:"Mi lesz x² − 6x + 5 csúcspontos alakja?",
+            options:["(x − 3)² − 4","(x − 3)² + 5","(x + 3)² − 4","(x − 6)² − 31"],
+            correct:0,
+            explain:"b = −6, a fele −3 → (x − 3)² = x² − 6x + 9, ez 9-cel több: 5 − 9 = −4, tehát (x − 3)² − 4." },
+          { q:"Az y = x² parabolához képest hogy mozdul el az y = (x − 2)² − 5 grafikonja?",
+            options:["2-vel jobbra és 5-tel lefelé","2-vel balra és 5-tel lefelé","2-vel jobbra és 5-tel felfelé","5-tel jobbra és 2-vel lefelé"],
+            correct:0,
+            explain:"A zárójelbeli −2 jobbra tolást jelent (ellentett előjel), a külső −5 lefelé tolást (ugyanaz az előjel)." },
+          { q:"Miért elég a csúcs és néhány pont a parabola megrajzolásához?",
+            options:["Mert a görbe szimmetrikus a csúcson átmenő függőleges egyenesre","Mert a parabola egyenes vonalakból áll","Mert mindig ugyanolyan széles","Mert elég két pont bármilyen görbéhez"],
+            correct:0,
+            explain:"A csúcstól jobbra és balra ugyanakkora távolságban ugyanaz az y érték, így a kiszámolt pontokat tükrözheted." }
+        ]
+      },
+      {
+        kind: "masodfoku",
+        id: "md-atal",
+        title: "Átalakítás csúcspontos alakra",
+        sub: "x² + bx + c → (x − u)² + v, generált feladatok",
+        build: mdAtalRound
+      },
+      {
+        kind: "masodfoku",
+        id: "md-csucs",
+        title: "Csúcs, megoldásszám, gyökök",
+        sub: "leolvasás a csúcspontos alakból, generált feladatok",
+        build: mdCsucsRound
+      },
+      {
+        kind: "masodfoku",
+        id: "md-abra",
+        title: "Ábraolvasás — parabola",
+        sub: "grafikonról a csúcs, a hozzárendelés és a megoldások",
+        build: mdAbraRound
       },
       {
         kind: "trukk11",
@@ -7314,6 +7671,31 @@ if(!PUBLIC_BUILD) (function(){
 })();
 
 
+
+/* Matematika: minden fejszámolási trükk egy „Fejszámolás” csoportba, trükkönként egy mappával */
+(function(){
+  const s = SUBJECTS.find(x => x.id === "matek");
+  if(!s) return;
+  const M = [
+    { id:"fej-11",  title:"Szorzás 11-gyel", sub:"két- és háromjegyű számok, átvitel", kinds:["trukk11"] },
+    { id:"fej-5",   title:"5-re végződő szám négyzete", sub:"a szám eleje × a nála eggyel nagyobb, mögé 25", kinds:["trukk5"] },
+    { id:"fej-any", title:"Bármely kétjegyű szám négyzete", sub:"három oszlop: a² | 2ab | b², átvitel jobbról", kinds:["trukkany"] }
+  ];
+  const bent = new Set();
+  const mappak = M.map(m => ({
+    kind: "fejszamolas", folder: true, id: m.id, title: m.title, sub: m.sub,
+    children: m.kinds.flatMap(k => s.topics.filter(t => t.kind === k))
+  }));
+  mappak.forEach(f => f.children.forEach(c => bent.add(c.id)));
+  /* a vegyes kvíz mappa nélkül, a mappák után marad a csoportban */
+  s.topics.forEach(t => { if(t.kind === "trukkmix") t.kind = "fejszamolas"; });
+  s.topics = s.topics.filter(t => !bent.has(t.id));
+  const elso = s.topics.findIndex(t => t.kind === "fejszamolas");
+  s.topics = elso < 0 ? s.topics.concat(mappak)
+    : s.topics.slice(0, elso).concat(mappak, s.topics.slice(elso));
+  s.groups = s.groups.concat([{ kind:"fejszamolas", label:"Fejszámolás",
+    note:"trükkönként magyarázat és gyakorlás, számológép nélkül" }]);
+})();
 
 /* Hálózatok: modulonként egy mappa — benne a szakaszkvízek, a vegyes kvíz és az írásbelik */
 (function(){

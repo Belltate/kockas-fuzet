@@ -513,6 +513,45 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
 .bits-sum b{color:var(--correct);font-size:1.05rem}
 .bits-cap{font-family:"JetBrains Mono",monospace;font-size:.62rem;letter-spacing:.1em;
   text-transform:uppercase;color:var(--ink-faint);margin:.9rem 0 -.3rem 0}
+/* ---------- bittáblázat-kvíz (CCNA 5.1.6 / 5.1.9) ---------- */
+.bq-grid{display:grid;grid-template-columns:7.6rem repeat(8,minmax(0,1fr));gap:.3rem;
+  align-items:stretch;margin:.3rem 0 .6rem 0}
+.bq-lbl{font-family:"JetBrains Mono",monospace;font-size:.64rem;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-faint);display:flex;align-items:center}
+.bq-c{display:grid;place-items:center;min-height:2.2rem;padding:.3rem .1rem;
+  background:var(--paper-raised);border:1px solid var(--rule);border-radius:var(--radius);
+  font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:.88rem;color:var(--ink-soft)}
+.bq-c.pos{color:var(--accent);font-weight:700;font-size:.95rem}
+.bq-c.adott{font-size:1.2rem;font-weight:700;color:var(--accent-ink);
+  background:var(--accent-soft);border-color:var(--accent)}
+.bq-dec-cell{grid-column:2 / -1;display:flex;align-items:center;justify-content:center;
+  min-height:2.6rem;border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-raised)}
+.bq-dec-cell.adott{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:1.7rem;font-weight:700;color:var(--accent-ink);
+  background:var(--accent-soft);border-color:var(--accent)}
+.bq-bit,.bq-dec{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;
+  text-align:center;background:var(--paper);color:var(--ink);
+  border:1px solid var(--grid-strong);border-radius:var(--radius)}
+.bq-bit{width:100%;min-width:0;min-height:2.2rem;padding:.3rem 0;font-size:1.15rem;font-weight:700}
+.bq-dec{width:6rem;padding:.35rem .4rem;font-size:1.5rem;font-weight:700}
+.bq-bit:focus,.bq-dec:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.bq-bit.ok,.bq-dec.ok{border-color:var(--correct);background:var(--correct-soft);color:var(--correct)}
+.bq-bit.rossz,.bq-dec.rossz{border-color:var(--wrong);background:var(--wrong-soft);color:var(--wrong)}
+.bq-fb{min-height:1.6em;margin:.1rem 0 1.1rem 0;font-size:.97rem;line-height:1.5;color:var(--ink-soft)}
+.bq-fb .m{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+.bq-fb.ok{color:var(--correct)}
+.bq-fb.no{color:var(--wrong)}
+.bq-fb.warn{color:var(--warn)}
+@media (max-width:560px){
+  .bq-grid{grid-template-columns:3.4rem repeat(8,minmax(0,1fr));gap:.17rem}
+  .bq-lbl{font-size:.52rem;letter-spacing:0;line-height:1.15}
+  .bq-c{font-size:.72rem;min-height:1.9rem;padding:.2rem 0}
+  .bq-c.pos{font-size:.72rem}
+  .bq-c.adott{font-size:.95rem}
+  .bq-bit{font-size:.95rem;min-height:1.9rem}
+  .bq-dec{font-size:1.3rem;width:5rem}
+}
 .hidden{display:none!important}
 /* ---------- írásbeli (begépelős) ---------- */
 .wlist{list-style:none;counter-reset:w;margin:0 0 1.5rem 0;padding:0;display:flex;flex-direction:column;gap:.45rem}
@@ -632,6 +671,36 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
       <button class="btn" id="w-check">Ellenőrzés</button>
       <button class="btn hidden" id="w-again">Új feladatsor</button>
       <button class="btn ghost" data-back="topics">Másik tananyag</button>
+    </div>
+  </section>
+
+  <!-- ============ NÉZET: BITTÁBLÁZAT ============ -->
+  <section id="view-bits" class="hidden">
+    <button class="back" data-back="topics">← Tananyagok</button>
+    <p class="eyebrow" id="bq-eyebrow"></p>
+    <h1 id="bq-heading"></h1>
+    <p class="tagline" id="bq-hint"></p>
+    <div class="progress">
+      <span class="count" id="bq-count"></span>
+      <span class="bar"><span id="bq-bar"></span></span>
+    </div>
+    <div class="bq-grid" id="bq-grid"></div>
+    <p class="bq-fb" id="bq-fb" role="status" aria-live="polite"></p>
+    <div class="actions" id="bq-actions">
+      <button class="btn" id="bq-check">Ellenőrzés</button>
+      <button class="btn ghost" id="bq-show">Mutasd meg</button>
+      <button class="btn hidden" id="bq-next">Következő</button>
+    </div>
+    <div class="w-result hidden" id="bq-done">
+      <div class="result-head">
+        <span class="result-score" id="bq-score"></span>
+        <span class="result-of" id="bq-of"></span>
+      </div>
+      <p class="result-msg" id="bq-msg"></p>
+      <div class="actions">
+        <button class="btn" id="bq-again">Új feladatsor</button>
+        <button class="btn ghost" data-back="topics">Másik tananyag</button>
+      </div>
     </div>
   </section>
 
@@ -2193,7 +2262,7 @@ const writtenCmds  = (sec, k) => writtenFrom(ITN2_WRITTEN, sec, k);
 /* több tananyag kérdéseiből véletlen válogatás (dolgozat előtti ismétléshez) */
 const mixFrom = (subjectId, kind, k) => () => {
   const s = SUBJECTS.find(x => x.id === subjectId);
-  const pool = allTopics(s).filter(t => t.kind === kind && !t.build).flatMap(t => t.questions);
+  const pool = allTopics(s).filter(t => t.kind === kind && !t.build && t.questions).flatMap(t => t.questions);
   return shuffled(pool).slice(0, k);
 };
 
@@ -4082,7 +4151,34 @@ const SUBJECTS = [
         eyebrow: "CCNA ITN · Modul 5",
         heading: "Decimális ↔ bináris átváltás",
         body: ITN_SZAMREND,
-        practice: []
+        practice: ["itn-5-bin2dec", "itn-5-dec2bin", "itn-5-vegyes"]
+      },
+      {
+        kind: "modul5",
+        id: "itn-5-bin2dec",
+        bits: true,
+        mode: "b2d",
+        n: 10,
+        title: "Binárisból decimálisba (5.1.6)",
+        sub: "adott a nyolc bit, a decimális érték a kérdés"
+      },
+      {
+        kind: "modul5",
+        id: "itn-5-dec2bin",
+        bits: true,
+        mode: "d2b",
+        n: 10,
+        title: "Decimálisból binárisba (5.1.9)",
+        sub: "adott a decimális érték, a nyolc bitet kell beírni"
+      },
+      {
+        kind: "modul5",
+        id: "itn-5-vegyes",
+        bits: true,
+        mode: "mix",
+        n: 16,
+        title: "Vegyes átváltás — mindkét irány",
+        sub: "feladatonként váltakozik, melyik oldal van megadva"
       },
       {
         kind: "irasbeli2",
@@ -7228,7 +7324,7 @@ if(!PUBLIC_BUILD) (function(){
       kinds:["modul1", "dolgozat", "irasbeli"] },
     { id:"itn-m2", title:"Modul 2 — Switch és végberendezés alapkonfigurációja", sub:"2.1–2.8: szakaszkvízek, vegyes és írásbeli",
       kinds:["modul2", "dolgozat2", "irasbeli2"] },
-    { id:"itn-m5", title:"Modul 5 — Számrendszerek", sub:"5.1: decimális ↔ bináris átváltás",
+    { id:"itn-m5", title:"Modul 5 — Számrendszerek", sub:"5.1: átváltás mindkét irányban",
       kinds:["modul5"] }
   ];
   const bent = new Set();
@@ -7300,7 +7396,7 @@ let progress = {};
 let cur = { subject:null, folder:null, topic:null, i:0, correct:0, misses:[], locked:false };
 
 const $ = id => document.getElementById(id);
-const VIEWS = { subjects:$("view-subjects"), topics:$("view-topics"), lesson:$("view-lesson"), quiz:$("view-quiz"), written:$("view-written"), free:$("view-free"), essay:$("view-essay"), result:$("view-result") };
+const VIEWS = { subjects:$("view-subjects"), topics:$("view-topics"), lesson:$("view-lesson"), quiz:$("view-quiz"), written:$("view-written"), bits:$("view-bits"), free:$("view-free"), essay:$("view-essay"), result:$("view-result") };
 
 function show(name){
   Object.entries(VIEWS).forEach(([k,el]) => el.classList.toggle("hidden", k !== name));
@@ -7376,7 +7472,9 @@ function topicButton(t){
   const left = document.createElement("span");
   const ti = document.createElement("span"); ti.className = "t-title"; ti.textContent = t.title;
   const ts = document.createElement("span"); ts.className = "t-sub";
-  ts.textContent = t.lesson || t.free || t.essay ? t.sub : t.sub + " · " + t.questions.length + " kérdés";
+  ts.textContent = t.lesson || t.free || t.essay ? t.sub
+    : t.bits ? t.sub + " · " + t.n + " feladat"
+    : t.sub + " · " + t.questions.length + " kérdés";
   left.append(ti, ts);
   const sc = document.createElement("span"); sc.className = "score";
   const rec = progress[key(t)];
@@ -7385,7 +7483,7 @@ function topicButton(t){
     sc.appendChild(l);
   } else if(rec && typeof rec.best === "number"){
     const v = document.createElement("span"); v.className = "val";
-    v.textContent = rec.best + "/" + t.questions.length;
+    v.textContent = rec.best + "/" + (t.bits ? t.n : t.questions.length);
     const l = document.createElement("span"); l.className = "lbl"; l.textContent = "legjobb";
     sc.append(v, l);
   } else {
@@ -7393,7 +7491,7 @@ function topicButton(t){
     sc.appendChild(l);
   }
   b.append(left, sc);
-  b.addEventListener("click", () => t.lesson ? openLesson(t) : t.written ? startWritten(t) : t.free ? startFree(t) : t.essay ? startEssay(t) : startQuiz(t));
+  b.addEventListener("click", () => t.lesson ? openLesson(t) : t.bits ? startBits(t) : t.written ? startWritten(t) : t.free ? startFree(t) : t.essay ? startEssay(t) : startQuiz(t));
   return b;
 }
 
@@ -7410,7 +7508,7 @@ function openLesson(t){
     const b = document.createElement("button");
     b.type = "button"; b.className = "btn" + (i ? " ghost" : "");
     b.textContent = q.title;
-    b.addEventListener("click", () => startQuiz(q));
+    b.addEventListener("click", () => q.bits ? startBits(q) : q.written ? startWritten(q) : startQuiz(q));
     acts.appendChild(b);
   });
   $("lesson-practice-label").classList.toggle("hidden", !acts.children.length);
@@ -7606,6 +7704,154 @@ function checkWritten(){
 }
 $("w-check").addEventListener("click", checkWritten);
 $("w-again").addEventListener("click", () => startWritten(cur.topic));
+
+/* ================= BITTÁBLÁZAT NÉZET (CCNA ITN 5.1.6 és 5.1.9 mintájára) ================= */
+/* d2b = adott a decimális érték, a nyolc bitet kell beírni · b2d = adott a nyolc bit, a decimális
+   értéket kell beírni · mix = feladatonként váltakozva. A szám mindig 0–255, mint egy IP-cím oktettje. */
+let bq = null;
+
+const bqBits = n => n.toString(2).padStart(8, "0").split("").map(Number);
+const bqTagok = n => { const b = bqBits(n); return HELYI.filter((h, i) => b[i]); };
+const bqOsszeg = n => (bqTagok(n).join(" + ") || "0") + " = " + n;
+
+function bqUj(){
+  let n = Math.floor(Math.random() * 256);
+  if(n === bq.elozo) n = (n + 1 + Math.floor(Math.random() * 255)) % 256;
+  bq.elozo = n;
+  bq.szam = n;
+  bq.irany = bq.mode === "mix" ? (Math.random() < 0.5 ? "d2b" : "b2d") : bq.mode;
+  bq.mutatva = false;
+  bq.lezart = false;
+  renderBits();
+}
+
+function renderBits(){
+  const d2b = bq.irany === "d2b", bits = bqBits(bq.szam);
+  const cella = (v, cls) => `<span class="bq-c${cls ? " " + cls : ""}">${v}</span>`;
+  const sor = (nev, cellak) => `<span class="bq-lbl">${nev}</span>` + cellak;
+
+  $("bq-grid").innerHTML =
+    sor("Decimális érték", d2b
+      ? `<span class="bq-dec-cell adott">${bq.szam}</span>`
+      : `<span class="bq-dec-cell"><input class="bq-dec" id="bq-dec" inputmode="numeric" maxlength="3" autocomplete="off" aria-label="A decimális érték"></span>`) +
+    sor("Bázis", HELYI.map(() => cella(2)).join("")) +
+    sor("Exponens", HELYI.map((h, i) => cella(7 - i)).join("")) +
+    sor("Pozíció", HELYI.map(h => cella(h, "pos")).join("")) +
+    sor("Bit", bits.map((b, i) => d2b
+      ? `<input class="bq-bit" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="A ${HELYI[i]} helyiérték bitje">`
+      : cella(b, "adott")).join(""));
+
+  $("bq-hint").textContent = d2b
+    ? "Fent a decimális érték — írd be alá mind a nyolc bitet. A Pozíció sor a helyiértékeket mutatja."
+    : "Lent a nyolc bit — írd be fölé a decimális értéket: add össze azokat a helyiértékeket, ahol 1-es áll.";
+  $("bq-count").textContent = (bq.i + 1) + " / " + bq.n;
+  $("bq-bar").style.width = (bq.i / bq.n * 100) + "%";
+  bqFb("");
+  $("bq-check").classList.remove("hidden");
+  $("bq-show").classList.remove("hidden");
+  $("bq-next").classList.add("hidden");
+
+  /* a bitmezőkben csak 0 vagy 1 lehet, és gépelés közben ugrik a következőre */
+  const mezok = Array.from(document.querySelectorAll("#bq-grid .bq-bit"));
+  mezok.forEach((el, i) => {
+    el.addEventListener("input", () => {
+      el.value = el.value.replace(/[^01]/g, "").slice(-1);
+      if(el.value && mezok[i + 1]) mezok[i + 1].focus();
+    });
+    el.addEventListener("keydown", e => {
+      if(e.key === "Enter"){ e.preventDefault(); checkBits(); }
+      if(e.key === "Backspace" && !el.value && mezok[i - 1]){ e.preventDefault(); mezok[i - 1].focus(); }
+      if(e.key === "ArrowLeft" && mezok[i - 1]) mezok[i - 1].focus();
+      if(e.key === "ArrowRight" && mezok[i + 1]) mezok[i + 1].focus();
+    });
+  });
+  const dec = $("bq-dec");
+  if(dec){
+    dec.addEventListener("input", () => { dec.value = dec.value.replace(/\D/g, ""); });
+    dec.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); checkBits(); } });
+  }
+  const first = mezok[0] || dec;
+  if(first) first.focus();
+}
+
+function bqFb(msg, cls){
+  const el = $("bq-fb");
+  el.innerHTML = msg || "";
+  el.className = "bq-fb" + (cls ? " " + cls : "");
+}
+
+function checkBits(){
+  if(bq.lezart) return;
+  const bits = bqBits(bq.szam);
+  let jo;
+  if(bq.irany === "d2b"){
+    const mezok = Array.from(document.querySelectorAll("#bq-grid .bq-bit"));
+    if(mezok.some(el => el.value === "")){ bqFb("Mind a nyolc bitet töltsd ki.", "warn"); return; }
+    jo = mezok.every((el, i) => +el.value === bits[i]);
+    mezok.forEach((el, i) => {
+      el.classList.add(+el.value === bits[i] ? "ok" : "rossz");
+      el.readOnly = true;
+    });
+  } else {
+    const dec = $("bq-dec");
+    if(dec.value === ""){ bqFb("Írd be a decimális értéket.", "warn"); return; }
+    jo = +dec.value === bq.szam;
+    dec.classList.add(jo ? "ok" : "rossz");
+    dec.readOnly = true;
+  }
+  bq.lezart = true;
+  if(jo && !bq.mutatva) bq.jo++;
+  const meg = `<span class="m">${bits.join("")}</span> → <span class="m">${bqOsszeg(bq.szam)}</span>`;
+  bqFb(jo && !bq.mutatva ? "Helyes! " + meg
+     : jo ? "Ez a megoldás: " + meg + " — de megmutattam, így nem jár rá pont."
+     : "Nem jó. A helyes megoldás: " + meg, jo && !bq.mutatva ? "ok" : jo ? "warn" : "no");
+  $("bq-check").classList.add("hidden");
+  $("bq-show").classList.add("hidden");
+  $("bq-next").classList.remove("hidden");
+  $("bq-next").textContent = bq.i + 1 < bq.n ? "Következő" : "Eredmény";
+  $("bq-next").focus();
+}
+
+function showBits(){
+  const bits = bqBits(bq.szam);
+  bq.mutatva = true;
+  if(bq.irany === "d2b") document.querySelectorAll("#bq-grid .bq-bit").forEach((el, i) => { el.value = bits[i]; });
+  else $("bq-dec").value = bq.szam;
+  bqFb(`Így jön ki: <span class="m">${bqOsszeg(bq.szam)}</span>. Erre a feladatra már nem jár pont — nyomd meg az Ellenőrzést.`, "warn");
+}
+
+function nextBits(){
+  bq.i++;
+  if(bq.i < bq.n){ bqUj(); return; }
+  $("bq-count").textContent = bq.n + " / " + bq.n;
+  $("bq-bar").style.width = "100%";
+  $("bq-grid").innerHTML = "";
+  $("bq-hint").textContent = "";
+  bqFb("");
+  $("bq-actions").classList.add("hidden");
+  $("bq-score").textContent = bq.jo;
+  $("bq-of").textContent = "/ " + bq.n + " pont";
+  $("bq-msg").textContent = scoreMsg(bq.jo / bq.n);
+  $("bq-done").classList.remove("hidden");
+  saveProgress(bq.t, bq.jo, bq.n);
+  window.scrollTo(0, 0);
+}
+
+function startBits(t){
+  cur.topic = t;
+  bq = { t:t, mode:t.mode, n:t.n, i:0, jo:0, elozo:-1 };
+  $("bq-eyebrow").textContent = cur.subject.name + " · átváltás";
+  $("bq-heading").textContent = t.title;
+  $("bq-done").classList.add("hidden");
+  $("bq-actions").classList.remove("hidden");
+  bqUj();
+  show("bits");
+}
+
+$("bq-check").addEventListener("click", checkBits);
+$("bq-show").addEventListener("click", showBits);
+$("bq-next").addEventListener("click", nextBits);
+$("bq-again").addEventListener("click", () => startBits(cur.topic));
 
 /* ================= SZABAD FELELET NÉZET ================= */
 let sampleP = null;

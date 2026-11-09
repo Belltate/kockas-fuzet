@@ -513,6 +513,9 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
   .work .sum{margin-top:.3rem}
   .column{font-size:.92rem;padding:.55rem .7rem}
 }
+/* ---------- emelő / forgatónyomaték ábra ---------- */
+.fig-bar{stroke:currentColor;stroke-width:5;stroke-linecap:round;fill:none}
+.fig-pivot{fill:var(--ink-soft);stroke:none}
 /* ---------- parabola-ábra ---------- */
 .fig-axis{stroke:currentColor;stroke-width:1.3;fill:none}
 .fig-axis.head{fill:currentColor;stroke:none}
@@ -1016,6 +1019,38 @@ function bitRow(n, cim){
     `<p class="bits-sum">${tagok.join(" + ") || "0"} = <b>${n}</b></p>`;
 }
 
+/* ---------- emelő: rúd + forgástengely + erők + erőkarok ---------- */
+/* o = { span, forces:[{x, label, len, kind, dir}], arms:[{x, label}], signs, note } */
+function svgTorque(o){
+  const span = o.span || 2, unit = 112 / span, y = 92;
+  const X = x => +(150 + x * unit).toFixed(1);
+  let out = "";
+  /* erőkarok a rúd fölött */
+  (o.arms || []).forEach(a => {
+    const x = X(a.x), ay = 62;
+    out += `<line x1="150" y1="${ay}" x2="${x}" y2="${ay}" class="fig-thin"/>`
+        +  `<line x1="150" y1="${ay - 5}" x2="150" y2="${ay + 5}" class="fig-thin"/>`
+        +  `<line x1="${x}" y1="${ay - 5}" x2="${x}" y2="${ay + 5}" class="fig-thin"/>`
+        +  txt((150 + x) / 2, ay - 11, a.label, "fig-ang");
+  });
+  /* a rúd és a forgástengely */
+  out += `<line x1="${X(-span)}" y1="${y}" x2="${X(span)}" y2="${y}" class="fig-bar"/>`;
+  out += `<polygon points="150,${y + 2} 141,${y + 28} 159,${y + 28}" class="fig-pivot"/>`;
+  out += `<line x1="128" y1="${y + 28}" x2="172" y2="${y + 28}" class="fig-ground"/>`;
+  out += `<circle cx="150" cy="${y}" r="3.4" class="fig-pivot"/>`;
+  /* erővektorok a rúdról */
+  (o.forces || []).forEach(f => {
+    const x = X(f.x), len = (f.len || 1) * 34, up = f.dir === "up";
+    const y2 = up ? y - len : y + len;
+    out += vecArrow(x, y, x, y2, f.kind || "g")
+        +  txt(x + 12, up ? y2 + 7 : y2 - 7, f.label, "fig-lbl " + (f.kind || "g"), "start");
+  });
+  /* forgásirányok jelölése, ahogy a füzetben */
+  if(o.signs) out += txt(34, 44, "+", "fig-ang") + txt(266, 44, "−", "fig-ang");
+  if(o.note) out += txt(150, 182, o.note, "fig-side");
+  return `<svg viewBox="0 0 300 200" role="img" aria-label="Emelő forgástengellyel és erőkkel">${out}</svg>`;
+}
+
 /* ---------- parabola: y = (x − u)² + v, koordinátarendszerrel ---------- */
 function svgParab(o){
   const u = o.u, v = o.v;
@@ -1071,7 +1106,8 @@ function svgParab(o){
 
 const figHTML = f => !f ? "" :
   (f.type === "force" ? svgForce(f) : f.type === "spring" ? svgSpring(f) :
-   f.type === "parab" ? svgParab(f) : f.type === "right" ? svgRight(f) : svgIso(f)) +
+   f.type === "torque" ? svgTorque(f) : f.type === "parab" ? svgParab(f) :
+   f.type === "right" ? svgRight(f) : svgIso(f)) +
   '<span class="cap">' + (f.cap || "az ábra méretarányos") + '</span>';
 
 /* ================= ANGOL SZÓLISTA (Pioneer B1+; leckék: WORD_UNITS) ================= */
@@ -3399,6 +3435,69 @@ OSI 2 · 1      →  hálózat-hozzáférési</div>
   <p>Az OSI <b>hét</b> rétegű, a TCP/IP <b>négy</b>: az OSI felső három rétege a TCP/IP alkalmazási rétegének felel meg, az alsó kettő a hálózat-hozzáférésinek.</p>
   <p>A PDU-nevek rétegenként mások: szállítási → <b>szegmens</b>, hálózati → <b>csomag</b>, adatkapcsolati → <b>keret</b>.</p>
   <p>A kódolás nem titkosítás: a kódolás a jellé alakítás, a titkosítás külön protokollfunkció (SSL/TLS, SSH).</p>
+</div>
+`;
+
+/* ================= FIZIKA: FORGATÓNYOMATÉK ================= */
+const LESSON_FORG = `
+<p class="lead">Egy üveget kézzel nehéz kinyitni, sörnyitóval könnyű. Egy ajtót a zsanér mellett alig tudsz megmozdítani, a kilincsnél simán. Ugyanakkora erő — más hatás. A különbség a <b>távolság</b>: milyen messze hat az erő a forgástengelytől.</p>
+
+<h2>1. A forgatónyomaték</h2>
+<div class="note">
+  <p class="note-label">Definíció</p>
+  <p><b>Forgatónyomaték:</b> az a mennyiség, mely megmutatja az erőhatás <b>forgásállapot-változtató képességének</b> mértékét.</p>
+</div>
+<ul>
+  <li>jele: <span class="m">M</span></li>
+  <li>képlete: <span class="m">M = F · k</span></li>
+  <li>mértékegysége: <span class="m">Nm</span> (newtonméter)</li>
+</ul>
+<p><b>k</b> = az erő <b>hatásvonalának a forgástengelytől mért távolsága</b> (az erőkar), <b>méterben</b>.</p>
+<div class="figure">${svgTorque({ span:2, forces:[{ x:-1.5, label:"F", kind:"g" }], arms:[{ x:-1.5, label:"k" }] })}<span class="cap">M = F · k — a háromszög a forgástengely</span></div>
+<p>Ugyanaz az erő kétszer akkora karon kétszer akkorát forgat:</p>
+<div class="figure">${svgTorque({ span:2, forces:[{ x:-0.7, label:"F", kind:"g" }, { x:1.6, label:"F", kind:"f" }], arms:[{ x:-0.7, label:"k₁" }, { x:1.6, label:"k₂" }], note:"azonos erő, különböző kar" })}<span class="cap">a jobb oldali erő forgat erősebben, mert nagyobb a karja</span></div>
+
+<h2>2. Számolás</h2>
+<div class="works">
+${work("F = 2 N,  k = 25 cm", [
+  ["k = 25 cm = <i>0,25 m</i>", "a kar mindig méterben megy a képletbe"],
+  ["M = F · k = 2 · 0,25", ""]
+], "0,5 Nm")}
+</div>
+<p>A képlet átrendezve: <span class="m">F = M / k</span> és <span class="m">k = M / F</span>.</p>
+
+<h2>3. Forgási egyensúly</h2>
+<p>A mérleghintán az egyik oldali erő az egyik irányba forgat (<b>+</b>), a másik oldali az ellenkezőbe (<b>−</b>).</p>
+<div class="figure">${svgTorque({ span:2, signs:true, forces:[{ x:-1.5, label:"F₁", kind:"g" }, { x:1, label:"F₂", kind:"f", len:1.5 }], arms:[{ x:-1.5, label:"k₁" }, { x:1, label:"k₂" }], note:"F₁ · k₁ = F₂ · k₂" })}<span class="cap">egyensúlyban a két forgatónyomaték egyenlő</span></div>
+<div class="column">M₁ = M₂
+M₁ − M₂ = 0
+M₁ + (−M₂) = 0
+Σ M = 0</div>
+<div class="note">
+  <p class="note-label">Definíció</p>
+  <p><b>Forgási egyensúly:</b> a testet érő erőhatások forgatónyomatékainak <b>előjeles összege nulla</b>.</p>
+  <p>Két erőnél ez a gyakorlatban: <span class="m">F₁ · k₁ = F₂ · k₂</span> — nagyobb erő, kisebb kar.</p>
+</div>
+
+<h2>4. Mérleghinta-feladat</h2>
+<p>Egy mérleghinta egyik végére, a középtől 1,5 m-re, egy 30 kg tömegű gyerek ül. Hova üljön a 45 kg tömegű testvére, hogy egyensúly legyen?</p>
+<div class="works">
+${work("m₁ = 30 kg, m₂ = 45 kg, k₁ = 1,5 m", [
+  ["F₁ = m₁ · g = 30 · 10 = <i>300 N</i>", "tömegből erő: F = m · g"],
+  ["F₂ = m₂ · g = 45 · 10 = <i>450 N</i>", "g = 10 m/s²"],
+  ["F₁ · k₁ = F₂ · k₂", "forgási egyensúly"],
+  ["300 · 1,5 = 450 · k₂", ""],
+  ["450 = 450 · k₂", ""]
+], "k₂ = 1 m")}
+</div>
+<p>A nehezebb testvérnek <b>közelebb</b> kell ülnie a tengelyhez.</p>
+
+<div class="note trap">
+  <p class="note-label">Tipikus hibák</p>
+  <p>A <b>kart centiméterben</b> hagyni: 25 cm → <b>0,25 m</b>, különben százszoros lesz az eredmény.</p>
+  <p>A <b>tömeget erőként</b> használni: 30 kg nem 30 N — előbb <span class="m">F = m · g</span>.</p>
+  <p>A mértékegység <b>Nm</b>, nem N és nem J.</p>
+  <p>Egyensúlynál a nagyobb erőhöz <b>kisebb</b> kar tartozik — ha fordítva jön ki, felcserélted az oldalakat.</p>
 </div>
 `;
 
@@ -6370,14 +6469,15 @@ const SUBJECTS = [
     name: "Fizika",
     calc: true,
     meta: "AJ",
-    desc: "Newton törvényei, inerciarendszer, lendület és sűrűség — elmélet és számolás.",
+    desc: "Newton törvényei, inerciarendszer, lendület, sűrűség, erők és forgatónyomaték — elmélet és számolás.",
     tagline: "Elmélet és gyakorlat külön ágon. A számolós feladatokhoz ott a számológép az oldal alján.",
     groups: [
       { kind:"elmelet",   label:"Elmélet",   note:"a három törvény és az inerciarendszer" },
       { kind:"gyakorlat", label:"Gyakorlat", note:"számolás és hétköznapi helyzetek" },
       { kind:"lendulet",  label:"Lendület", note:"p = m · v, erőlökés, megmaradás" },
       { kind:"suruseg",   label:"Sűrűség",  note:"ρ = m / V, az állandó hányados" },
-      { kind:"ero",       label:"Nehézségi erő és rugóerő", note:"vektorok iránya, Hooke-törvény" }
+      { kind:"ero",       label:"Nehézségi erő és rugóerő", note:"vektorok iránya, Hooke-törvény" },
+      { kind:"forgatas",  label:"Forgatónyomaték", note:"M = F · k, erőkar, forgási egyensúly" }
     ],
     topics: [
       {
@@ -7284,6 +7384,251 @@ const SUBJECTS = [
             options:["A test tömegközéppontjában","A test alsó szélén","Az asztal felszínén","A nyilak hegyén"],
             correct:0,
             explain:"Az erőket a tömegközéppontból rajzoljuk ki, ezért indul mindkét nyíl a test közepéből." }
+        ]
+      },
+      {
+        kind: "forgatas",
+        id: "fiz-forg-lecke",
+        lesson: true,
+        title: "Így csináld — magyarázat ábrákkal",
+        sub: "a forgatónyomaték, az erőkar és a forgási egyensúly",
+        eyebrow: "Fizika · forgatónyomaték",
+        heading: "Forgatónyomaték",
+        body: LESSON_FORG,
+        practice: ["fiz-forg-elm", "fiz-forg-szam", "fiz-forg-egy", "fiz-forg-abra"]
+      },
+      {
+        kind: "forgatas",
+        id: "fiz-forg-elm",
+        title: "Forgatónyomaték — fogalmak",
+        sub: "a definíció, a jele, a mértékegysége és az erőkar",
+        questions: [
+          { q:"Mit mutat meg a forgatónyomaték?",
+            options:["Az erőhatás forgásállapot-változtató képességének mértékét","Az erő nagyságát","A test tömegét","A forgás sebességét"],
+            correct:0,
+            explain:"A forgatónyomaték azt fejezi ki, mennyire képes egy erőhatás megváltoztatni a test forgásállapotát." },
+          { q:"Mi a forgatónyomaték jele és képlete?",
+            options:["M = F · k","F = M · k","k = M · F","M = F / k"],
+            correct:0,
+            explain:"A jele M, és az erő nagyságának és az erőkarnak a szorzata: M = F · k." },
+          { q:"Mi a forgatónyomaték mértékegysége?",
+            options:["Nm (newtonméter)","N (newton)","J (joule)","N/m"],
+            correct:0,
+            explain:"Erő szorozva távolsággal: N · m = Nm. A joule munkát jelent, az N/m pedig rugóállandót." },
+          { q:"Mit jelent a képletben a k?",
+            options:["Az erő hatásvonalának a forgástengelytől mért távolságát","A test tömegét","A rugóállandót","Az elmozdulás nagyságát"],
+            correct:0,
+            explain:"A k az erőkar: a forgástengely és az erő hatásvonala közötti távolság, méterben." },
+          { q:"Milyen egységben kell a k-t a képletbe helyettesíteni?",
+            options:["Méterben","Centiméterben","Milliméterben","Mindegy, csak következetes legyen"],
+            correct:0,
+            explain:"A newtonméterhez méter kell: 25 cm-et előbb 0,25 m-re kell váltani, különben százszoros lesz az eredmény." },
+          { q:"Miért könnyebb az üveget sörnyitóval kinyitni, mint kézzel?",
+            options:["Mert a nyitó nagyobb erőkart ad, így ugyanakkora erő nagyobb forgatónyomatékot ad","Mert a nyitó nehezebb","Mert a fém erősebb anyag","Mert a nyitó csökkenti a súrlódást"],
+            correct:0,
+            explain:"A forgatónyomaték az erő és a kar szorzata: hosszabb karon ugyanaz az erő nagyobb forgatást jelent." },
+          { q:"Hol kell megnyomni egy ajtót, hogy a legkisebb erővel nyissuk ki?",
+            options:["A zsanértól a lehető legtávolabb, a kilincs felőli szélén","Közvetlenül a zsanér mellett","Az ajtó közepén","Mindegy, mert ugyanaz az erő kell"],
+            correct:0,
+            explain:"Minél nagyobb a kar, annál kisebb erő elég ugyanakkora forgatónyomatékhoz. A zsanér mellett a kar majdnem nulla." },
+          { q:"Mi történik a forgatónyomatékkal, ha ugyanakkora erővel kétszer akkora karon hatsz?",
+            options:["Kétszer akkora lesz","Fele akkora lesz","Nem változik","Négyszer akkora lesz"],
+            correct:0,
+            explain:"M = F · k — a kar kétszerezése kétszerezi a szorzatot is." },
+          { q:"Mi a forgási egyensúly feltétele?",
+            options:["A forgatónyomatékok előjeles összege nulla (Σ M = 0)","Az erők összege nulla","A tömegek egyenlők","A karok egyenlők"],
+            correct:0,
+            explain:"Forgási egyensúly: a testet érő erőhatások forgatónyomatékainak előjeles összege nulla." },
+          { q:"Miért kell előjellel számolni a forgatónyomatékokat?",
+            options:["Mert az ellentétes irányba forgató hatások kioltják egymást","Mert az erők negatívak is lehetnek","Mert a kar lehet negatív","Mert a mértékegység ezt kívánja"],
+            correct:0,
+            explain:"Az egyik irányba forgató nyomaték pozitív, a másik irányba forgató negatív — ezért lesz egyensúlyban az összegük nulla." },
+          { q:"Két erő tart egyensúlyban egy mérleghintát. Melyik összefüggés igaz?",
+            options:["F₁ · k₁ = F₂ · k₂","F₁ · F₂ = k₁ · k₂","F₁ + k₁ = F₂ + k₂","F₁ / k₁ = F₂ / k₂"],
+            correct:0,
+            explain:"A két forgatónyomaték egyenlő nagyságú és ellentétes irányú, tehát F₁ · k₁ = F₂ · k₂." },
+          { q:"Két gyerek ül egy mérleghintán egyensúlyban. Melyik ül közelebb a tengelyhez?",
+            options:["A nehezebb","A könnyebb","Mindketten ugyanolyan messze ülnek","Ez a hinta hosszától függ"],
+            correct:0,
+            explain:"Nagyobb erőhöz kisebb kar tartozik, hogy a szorzat ugyanannyi legyen — a nehezebbnek közelebb kell ülnie." }
+        ]
+      },
+      {
+        kind: "forgatas",
+        id: "fiz-forg-szam",
+        title: "Forgatónyomaték — számolás",
+        sub: "M = F · k és a képlet átrendezése, átváltással együtt",
+        questions: [
+          { q:"Mekkora a forgatónyomaték?",
+            given:"F = 2 N\nk = 25 cm",
+            options:["0,5 Nm","50 Nm","5 Nm","0,05 Nm"],
+            correct:0,
+            explain:"Előbb átváltás: 25 cm = 0,25 m. M = F · k = 2 · 0,25 = 0,5 Nm." },
+          { q:"Mekkora a forgatónyomaték?",
+            given:"F = 40 N\nk = 0,5 m",
+            options:["20 Nm","80 Nm","4 Nm","200 Nm"],
+            correct:0,
+            explain:"M = F · k = 40 · 0,5 = 20 Nm." },
+          { q:"Mekkora a forgatónyomaték?",
+            given:"F = 15 N\nk = 20 cm",
+            options:["3 Nm","300 Nm","0,3 Nm","30 Nm"],
+            correct:0,
+            explain:"20 cm = 0,2 m, így M = 15 · 0,2 = 3 Nm. A 300 Nm akkor jönne ki, ha centiméterrel számolnál." },
+          { q:"Mekkora a forgatónyomaték?",
+            given:"F = 120 N\nk = 0,8 m",
+            options:["96 Nm","150 Nm","9,6 Nm","12 Nm"],
+            correct:0,
+            explain:"M = 120 · 0,8 = 96 Nm." },
+          { q:"Mekkora erő hat a karon?",
+            given:"M = 12 Nm\nk = 0,4 m",
+            options:["30 N","4,8 N","3 N","48 N"],
+            correct:0,
+            explain:"A képletet átrendezve F = M / k = 12 / 0,4 = 30 N." },
+          { q:"Mekkora erő hat a karon?",
+            given:"M = 9 Nm\nk = 30 cm",
+            options:["30 N","0,3 N","2,7 N","3 N"],
+            correct:0,
+            explain:"30 cm = 0,3 m, így F = M / k = 9 / 0,3 = 30 N." },
+          { q:"Mekkora az erőkar?",
+            given:"M = 6 Nm\nF = 24 N",
+            options:["0,25 m (25 cm)","4 m","144 m","2,5 m"],
+            correct:0,
+            explain:"k = M / F = 6 / 24 = 0,25 m, azaz 25 cm." },
+          { q:"Mekkora az erőkar?",
+            given:"M = 50 Nm\nF = 200 N",
+            options:["0,25 m","4 m","0,4 m","2,5 m"],
+            correct:0,
+            explain:"k = M / F = 50 / 200 = 0,25 m." },
+          { q:"Egy 60 N-os erő 1,5 m-es karon hat. Mekkora erő adná ugyanezt a forgatónyomatékot 0,5 m-es karon?",
+            given:"F₁ = 60 N, k₁ = 1,5 m\nk₂ = 0,5 m",
+            options:["180 N","20 N","90 N","30 N"],
+            correct:0,
+            explain:"M = 60 · 1,5 = 90 Nm. Ugyanehhez 0,5 m-en F = 90 / 0,5 = 180 N kell — rövidebb kar, nagyobb erő." },
+          { q:"Hányszorosára nő a forgatónyomaték, ha az erőt és a kart is megduplázod?",
+            options:["Négyszeresére","Kétszeresére","Nem változik","Nyolcszorosára"],
+            correct:0,
+            explain:"M = F · k, mindkét tényező kétszereződik: 2 · 2 = 4-szeres lesz." },
+          { q:"Mekkora a nehézségi erő forgatónyomatéka?",
+            given:"m = 3 kg a kar végén\nk = 0,4 m\ng = 10 m/s²",
+            options:["12 Nm","1,2 Nm","120 Nm","0,12 Nm"],
+            correct:0,
+            explain:"Előbb erő: F = m · g = 3 · 10 = 30 N. Utána M = F · k = 30 · 0,4 = 12 Nm." },
+          { q:"Mekkora a forgatónyomaték?",
+            given:"m = 500 g a kar végén\nk = 20 cm\ng = 10 m/s²",
+            options:["1 Nm","100 Nm","10 Nm","0,1 Nm"],
+            correct:0,
+            explain:"500 g = 0,5 kg → F = 0,5 · 10 = 5 N. 20 cm = 0,2 m → M = 5 · 0,2 = 1 Nm." }
+        ]
+      },
+      {
+        kind: "forgatas",
+        id: "fiz-forg-egy",
+        title: "Forgási egyensúly — mérleghinta",
+        sub: "Σ M = 0 és az F₁ · k₁ = F₂ · k₂ feladatok",
+        questions: [
+          { q:"Egyensúlyban van-e a hinta?",
+            given:"F₁ = 300 N, k₁ = 1 m\nF₂ = 150 N, k₂ = 2 m",
+            options:["Igen, mert 300 · 1 = 150 · 2","Nem, mert F₁ nagyobb","Nem, mert k₂ nagyobb","Nem lehet eldönteni"],
+            correct:0,
+            explain:"Mindkét oldalon 300 Nm a forgatónyomaték, az előjeles összegük nulla — a hinta egyensúlyban van." },
+          { q:"Hova üljön a testvér, hogy egyensúly legyen?",
+            given:"m₁ = 30 kg, k₁ = 1,5 m\nm₂ = 45 kg\ng = 10 m/s²",
+            options:["1 m-re a tengelytől","1,5 m-re a tengelytől","2,25 m-re a tengelytől","0,5 m-re a tengelytől"],
+            correct:0,
+            explain:"F₁ = 300 N, F₂ = 450 N. F₁ · k₁ = F₂ · k₂ → 300 · 1,5 = 450 · k₂ → 450 = 450 · k₂ → k₂ = 1 m." },
+          { q:"Mekkora erő kell a másik oldalon az egyensúlyhoz?",
+            given:"F₁ = 200 N, k₁ = 1,2 m\nk₂ = 0,8 m",
+            options:["300 N","133 N","240 N","160 N"],
+            correct:0,
+            explain:"F₂ = F₁ · k₁ / k₂ = 200 · 1,2 / 0,8 = 240 / 0,8 = 300 N." },
+          { q:"Mekkora tömeg kell a másik oldalra?",
+            given:"m₁ = 20 kg, k₁ = 1 m\nk₂ = 0,5 m\ng = 10 m/s²",
+            options:["40 kg","10 kg","20 kg","5 kg"],
+            correct:0,
+            explain:"Fele akkora karhoz kétszeres erő kell: F₂ = 200 · 1 / 0,5 = 400 N → m₂ = 400 / 10 = 40 kg." },
+          { q:"Milyen messze van a tengelytől a 100 N-os erő, ha egyensúly van?",
+            given:"F₁ = 50 N, k₁ = 1,6 m\nF₂ = 100 N",
+            options:["0,8 m","3,2 m","1,6 m","0,5 m"],
+            correct:0,
+            explain:"k₂ = F₁ · k₁ / F₂ = 50 · 1,6 / 100 = 80 / 100 = 0,8 m." },
+          { q:"Mit jelent az, hogy Σ M = 0?",
+            options:["A forgatónyomatékok előjeles összege nulla, a test nem kezd forogni","Nincs erő a testen","A test áll","A forgatónyomatékok mind nullák"],
+            correct:0,
+            explain:"Lehetnek nagy forgatónyomatékok is, csak ki kell oltaniuk egymást: az egyik irányba forgató pozitív, a másik negatív." },
+          { q:"Egy 40 kg-os gyerek 1 m-re ül a tengelytől, a másik oldalon egy 20 kg-os 1,5 m-re. Mi történik?",
+            given:"g = 10 m/s²",
+            options:["A 40 kg-os oldal lemegy, mert ott nagyobb a forgatónyomaték","Egyensúly van","A 20 kg-os oldal megy le","Nem lehet eldönteni"],
+            correct:0,
+            explain:"400 · 1 = 400 Nm, illetve 200 · 1,5 = 300 Nm. A nagyobb nyomaték győz, tehát a 40 kg-os oldal süllyed." },
+          { q:"Egy rúd két oldalán azonos nagyságú erő hat lefelé, de különböző karon. Mi történik?",
+            options:["A nagyobb karú oldal felé fordul el","Egyensúlyban marad","A kisebb karú oldal felé fordul","Felemelkedik a rúd"],
+            correct:0,
+            explain:"Azonos erőnél a nagyobb kar nagyobb forgatónyomatékot ad, tehát az az oldal süllyed." },
+          { q:"Mekkora a második erő karja?",
+            given:"F₁ = 120 N, k₁ = 0,5 m\nF₂ = 60 N",
+            options:["1 m","0,25 m","2 m","0,5 m"],
+            correct:0,
+            explain:"k₂ = F₁ · k₁ / F₂ = 120 · 0,5 / 60 = 60 / 60 = 1 m. Feleakkora erőhöz kétszeres kar kell." },
+          { q:"Egy emelőrúd rövid oldalán 600 N terhet akarsz megemelni. A teher 0,2 m-re, te 1,2 m-re vagy a tengelytől. Mekkora erő kell?",
+            options:["100 N","3600 N","120 N","500 N"],
+            correct:0,
+            explain:"F = 600 · 0,2 / 1,2 = 120 / 1,2 = 100 N. Ez az emelő haszna: hosszabb karon kisebb erő is elég." }
+        ]
+      },
+      {
+        kind: "forgatas",
+        id: "fiz-forg-abra",
+        title: "Ábraolvasás — emelő és erőkar",
+        sub: "minden kérdéshez ábra: hol a tengely, melyik kar, merre fordul",
+        questions: [
+          { q:"Mit jelöl az ábrán a k?",
+            fig:{ type:"torque", span:2, forces:[{ x:-1.5, label:"F", kind:"g" }], arms:[{ x:-1.5, label:"k" }],
+              cap:"a háromszög a forgástengely" },
+            options:["Az erő hatásvonalának a forgástengelytől mért távolságát","A rúd teljes hosszát","Az erő nagyságát","A rúd tömegét"],
+            correct:0,
+            explain:"A k az erőkar: a forgástengelytől az erő hatásvonaláig mért távolság. A forgatónyomaték M = F · k." },
+          { q:"Melyik erő forgat erősebben?",
+            fig:{ type:"torque", span:2, forces:[{ x:-0.6, label:"F₁", kind:"g" }, { x:1.7, label:"F₂", kind:"f" }],
+              arms:[{ x:-0.6, label:"k₁" }, { x:1.7, label:"k₂" }], cap:"a két nyíl egyforma hosszú, vagyis a két erő egyenlő" },
+            options:["Az F₂, mert nagyobb a karja","Az F₁, mert közelebb van a tengelyhez","Egyformán forgatnak","Egyik sem forgat"],
+            correct:0,
+            explain:"Azonos erőnél a nagyobb kar nagyobb forgatónyomatékot ad: M = F · k." },
+          { q:"Mi történik a rúddal?",
+            fig:{ type:"torque", span:2, signs:true, forces:[{ x:-1.5, label:"F₁", kind:"g" }, { x:1.5, label:"F₂", kind:"f" }],
+              arms:[{ x:-1.5, label:"k₁" }, { x:1.5, label:"k₂" }], cap:"a két erő és a két kar is egyenlő" },
+            options:["Egyensúlyban marad, mert a két forgatónyomaték kioltja egymást","Balra fordul","Jobbra fordul","Felemelkedik"],
+            correct:0,
+            explain:"Egyenlő erők egyenlő karon: F₁ · k₁ = F₂ · k₂, az előjeles összeg nulla — ez a forgási egyensúly." },
+          { q:"Melyik oldal süllyed le?",
+            fig:{ type:"torque", span:2, signs:true, forces:[{ x:-0.8, label:"F₁", kind:"g" }, { x:1.6, label:"F₂", kind:"f" }],
+              arms:[{ x:-0.8, label:"k₁" }, { x:1.6, label:"k₂" }], cap:"a két erő egyenlő nagyságú" },
+            options:["A jobb oldal, mert ott nagyobb a kar","A bal oldal, mert ott nagyobb az erő","Egyik sem, egyensúly van","A rúd megfordul a tengely körül"],
+            correct:0,
+            explain:"Egyenlő erőknél a hosszabb kar nyer: a jobb oldali forgatónyomaték nagyobb." },
+          { q:"Hogyan lehetne egyensúlyba hozni ezt a rudat?",
+            fig:{ type:"torque", span:2, forces:[{ x:-1.6, label:"F₁", kind:"g" }, { x:0.8, label:"F₂", kind:"f" }],
+              arms:[{ x:-1.6, label:"k₁" }, { x:0.8, label:"k₂" }], cap:"a két erő egyenlő nagyságú" },
+            options:["A jobb oldali erőt növelni, vagy a karját megnövelni","A bal oldali erőt növelni","Mindkét erőt csökkenteni","Sehogy, ez mindig billeg"],
+            correct:0,
+            explain:"A bal oldalon nagyobb a kar, tehát nagyobb a forgatónyomaték. Egyensúlyhoz a jobb oldali szorzatot kell ugyanakkorára növelni." },
+          { q:"Mekkora a forgatónyomaték, ha F = 20 N és k = 1,5 m?",
+            fig:{ type:"torque", span:2, forces:[{ x:-1.5, label:"F", kind:"g" }], arms:[{ x:-1.5, label:"k" }],
+              cap:"egyetlen erő hat a rúdra" },
+            options:["30 Nm","13,3 Nm","21,5 Nm","3 Nm"],
+            correct:0,
+            explain:"M = F · k = 20 · 1,5 = 30 Nm." },
+          { q:"Hol a legkisebb egy felfelé húzó erő forgatónyomatéka?",
+            fig:{ type:"torque", span:2, forces:[{ x:0.25, label:"F", kind:"k", dir:"up" }], arms:[{ x:0.25, label:"k" }],
+              cap:"az erő közel van a tengelyhez" },
+            options:["A tengelyhez közel, mert ott kicsi a kar","A rúd végén","Középen a tengelyben a legnagyobb","Mindenhol ugyanakkora"],
+            correct:0,
+            explain:"M = F · k: ha a kar majdnem nulla, a forgatónyomaték is majdnem nulla — ezért nehéz a zsanérnál nyitni az ajtót." },
+          { q:"Mit mutat ez az ábra?",
+            fig:{ type:"torque", span:2, signs:true, forces:[{ x:-1.5, label:"F₁", kind:"g" }, { x:1, label:"F₂", kind:"f", len:1.5 }],
+              arms:[{ x:-1.5, label:"k₁" }, { x:1, label:"k₂" }], cap:"a jobb oldali nyíl hosszabb, a karja rövidebb" },
+            options:["Egyensúlyt: a kisebb erő nagyobb karon, a nagyobb erő kisebb karon hat","Azt, hogy a bal oldal lemegy","Azt, hogy a rúd eltörik","Azt, hogy nincs forgástengely"],
+            correct:0,
+            explain:"Ez a tipikus mérleghinta-eset: F₁ · k₁ = F₂ · k₂, vagyis a nehezebb oldal ül közelebb a tengelyhez." }
         ]
       },
     ]

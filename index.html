@@ -1042,8 +1042,10 @@ function svgTorque(o){
   (o.forces || []).forEach(f => {
     const x = X(f.x), len = (f.len || 1) * 34, up = f.dir === "up";
     const y2 = up ? y - len : y + len;
+    /* a címke kifelé, a forgástengelytől elfelé, hogy ne fedje a háromszöget */
+    const ki = f.x < 0 ? -1 : 1;
     out += vecArrow(x, y, x, y2, f.kind || "g")
-        +  txt(x + 12, up ? y2 + 7 : y2 - 7, f.label, "fig-lbl " + (f.kind || "g"), "start");
+        +  txt(x + ki * 12, up ? y2 + 7 : y2 - 7, f.label, "fig-lbl " + (f.kind || "g"), ki < 0 ? "end" : "start");
   });
   /* forgásirányok jelölése, ahogy a füzetben */
   if(o.signs) out += txt(34, 44, "+", "fig-ang") + txt(266, 44, "−", "fig-ang");
@@ -3396,19 +3398,20 @@ const ITN3_JEGYZET = `
   <b>1 fizikai</b><span>bitek, jelek, kábel, csatlakozó</span>
 </div>
 <p>Megfeleltetés a TCP/IP-modellel:</p>
-<div class="column">OSI 7 · 6 · 5  →  alkalmazási
-OSI 4          →  szállítási
-OSI 3          →  internet
-OSI 2 · 1      →  hálózat-hozzáférési</div>
+<div class="column">OSI 7·6·5 → alkalmazási
+OSI 4     → szállítási
+OSI 3     → internet
+OSI 2·1   → hálózat-hozzáférési</div>
 
 <h2>6. Adatbeágyazás (3.6)</h2>
 <p><b>Szegmentálás:</b> a nagy adat darabokban megy. Előnye a <b>hatékonyság</b> (csak a hiányzó darab megy újra) és a <b>multiplexálás</b> (több beszélgetés egy közegen). Hátránya, hogy sorszámozni és a vevőnél sorrendbe rakni kell.</p>
 <p><b>Beágyazás:</b> minden réteg saját fejlécet tesz az adat elé.</p>
 <div class="column">adat
- + TCP-fejléc              →  szegmens
- + IP-fejléc               →  csomag
- + keretfejléc és -lezárás →  keret
- jelek a közegen           →  bitek</div>
+ + TCP-fejléc    → szegmens
+ + IP-fejléc     → csomag
+ + keretfejléc   → keret
+ jelek a közegen → bitek</div>
+<p>A keret végére még egy <b>lezárás</b> is kerül (ebben van a hibaellenőrzés).</p>
 <div class="dates">
   <b>alkalmazási</b><span>adat</span>
   <b>szállítási</b><span>szegmens</span>

@@ -2328,6 +2328,84 @@ const writtenFrom = (list, sec, k) => () => {
     return { prompt: x.p, show: x.sh || x.a.slice(0, 2).join(" / "), note: x.n || "", check: v => ok.has(normHu(v)) };
   });
 };
+const ITN3_SECTIONS = [
+  ["3.1", "A szabályok"],
+  ["3.2", "Protokollok"],
+  ["3.3", "Protokollkészletek"],
+  ["3.4", "Szabványügyi szervezetek"],
+  ["3.5", "Referenciamodellek"],
+  ["3.6", "Adatbeágyazás"],
+  ["3.7", "Adathozzáférés"]
+];
+const ITN3_HINT = "Olvasd el a leírást, és írd be a fogalmat vagy a rövidítést — magyarul vagy angolul is jó. A kis- és nagybetű, az ékezet és a kötőjel nem számít. Enterrel a következő sorra ugrasz, a végén nyomd meg az Ellenőrzést.";
+const ITN3_WRITTEN = [
+  { s:"3.1", p:"A kommunikációra vonatkozó, előre megállapodott szabályok együttese", a:["protokoll"] },
+  { s:"3.1", p:"Az információ átalakítása az átvitelhez megfelelő formába, bitekké és jelekké", a:["kódolás","üzenetkódolás","encoding"] },
+  { s:"3.1", p:"A nagy adat kisebb darabokra bontása, mert a hálózat csak korlátozott méretű egységeket továbbít", a:["szegmentálás","darabolás"] },
+  { s:"3.1", p:"Az a szabály, amely meghatározza, mikor küldhet egy eszköz, hogy ne ütközzenek az üzenetek", a:["hozzáférési mód","access method","közeghozzáférés"] },
+  { s:"3.1", p:"Az adó és a vevő közötti sebesség egyeztetése, hogy ne vesszen el adat", a:["áramlásszabályozás","áramlásvezérlés","flow control"] },
+  { s:"3.1", p:"Az az idő, ameddig az eszköz a válaszra vár, mielőtt újraküldene vagy hibát jelezne", a:["válasz-időtúllépés","időtúllépés","response timeout","timeout"] },
+  { s:"3.1", p:"Az a továbbítási mód, amelynél az üzenet egyetlen címzetthez megy", a:["unicast","egyesküldés"] },
+  { s:"3.1", p:"Az a továbbítási mód, amelynél az üzenet eszközök egy csoportjához megy", a:["multicast","csoportos küldés"] },
+  { s:"3.1", p:"Az a továbbítási mód, amelynél az üzenet a hálózat összes eszközéhez megy", a:["broadcast","szórásos küldés","üzenetszórás"] },
+
+  { s:"3.2", p:"A szállítási réteg protokollja, amely megbízható, visszaigazolt átvitelt ad", a:["TCP"] },
+  { s:"3.2", p:"A szállítási réteg protokollja, amely gyors, de nem igazolja vissza a kézbesítést", a:["UDP"] },
+  { s:"3.2", p:"A protokoll, amely a weboldalak tartalmát kéri le és továbbítja", a:["HTTP"] },
+  { s:"3.2", p:"Az útvonalválasztó protokoll, amelyet egy szervezeten belül használnak a legjobb út kiszámítására", a:["OSPF"] },
+  { s:"3.2", p:"Az internetszolgáltatók közötti útvonalválasztó protokoll", a:["BGP"] },
+  { s:"3.2", p:"A szolgáltatás, amely a tartományneveket IP-címekre fordítja", a:["DNS"] },
+  { s:"3.2", p:"A protokoll, amely titkosított távoli parancssori hozzáférést ad", a:["SSH"] },
+  { s:"3.2", p:"A protokollfunkció, amely kiszűri az átvitel közben megsérült adatot", a:["hibaérzékelés","hibafelismerés","error detection"] },
+  { s:"3.2", p:"A protokollfunkció, amely a darabokat eredeti sorrendbe rakja a vevőnél", a:["sorszámozás","sorrendezés","sequencing"] },
+
+  { s:"3.3", p:"Egymással együttműködő protokollok rétegekbe szervezett csoportja", a:["protokollkészlet","protokollcsalád","protocol suite"] },
+  { s:"3.3", p:"Az a protokollkészlet, amelyet ma az internet használ", a:["TCP/IP"] },
+  { s:"3.3", p:"A TCP/IP modell legfelső rétege, ahol a HTTP, a DNS és a DHCP dolgozik", a:["alkalmazási réteg","alkalmazási"] },
+  { s:"3.3", p:"A TCP/IP modell rétege, amely a végpontok közötti kapcsolatot és a portokat kezeli", a:["szállítási réteg","szállítási"] },
+  { s:"3.3", p:"A TCP/IP modell rétege, ahol az IPv4, az IPv6 és az ICMP dolgozik", a:["internetréteg","internet réteg","internet"] },
+  { s:"3.3", p:"A TCP/IP modell legalsó rétege, ahol az Ethernet és az ARP dolgozik", a:["hálózat-hozzáférési réteg","hálózathozzáférési réteg","hálózat-hozzáférési"] },
+  { s:"3.3", p:"A szolgáltatás, amely automatikusan kiosztja a végberendezéseknek az IP-beállításokat", a:["DHCP"] },
+  { s:"3.3", p:"Az internetréteg protokollja, amely hibajelzésre és a ping működésére szolgál", a:["ICMP"] },
+
+  { s:"3.4", p:"Az internetszabványokat leíró, számozott dokumentumok neve", a:["RFC"] },
+  { s:"3.4", p:"A szervezet, amely az internetszabványokat fejleszti és karbantartja", a:["IETF"] },
+  { s:"3.4", p:"A szervezet, amely az IP-címek és a protokollazonosítók kiosztásáért felel", a:["IANA"] },
+  { s:"3.4", p:"A szervezet, amely a domainnevek és a címzés általános felügyeletét végzi", a:["ICANN"] },
+  { s:"3.4", p:"A szervezet, amely a vezetékes és vezeték nélküli hálózatok elektronikai szabványait adja", a:["IEEE"] },
+  { s:"3.4", p:"Az IEEE-szabvány száma, amely az Ethernetet írja le", a:["802.3"] },
+  { s:"3.4", p:"Az IEEE-szabvány száma, amely a vezeték nélküli hálózatot (WLAN) írja le", a:["802.11"] },
+  { s:"3.4", p:"A szervezet, amely a kábelezési és csatlakozószabványokért felel", a:["EIA/TIA","EIA","TIA"] },
+  { s:"3.4", p:"A szervezet, amely a nemzetközi szabványokért felel, és az OSI-modellt megalkotta", a:["ISO"] },
+  { s:"3.4", p:"A szervezet, amely a távközlés és a szélessávú kommunikáció szabványait adja", a:["ITU-T","ITU"] },
+  { s:"3.4", p:"A szervezet, amely az internet nyílt fejlesztését és az oktatást támogatja", a:["ISOC","Internet Society"] },
+
+  { s:"3.5", p:"A hétrétegű referenciamodell neve", a:["OSI","OSI-modell"] },
+  { s:"3.5", p:"Az OSI-modell rétege, amely a biteket jelekké alakítva a kábelre teszi", a:["fizikai réteg","fizikai"] },
+  { s:"3.5", p:"Az OSI-modell rétege, amely keretekkel és MAC-címekkel dolgozik", a:["adatkapcsolati réteg","adatkapcsolati"] },
+  { s:"3.5", p:"Az OSI-modell rétege, amely a logikai címzést és az útvonalválasztást végzi", a:["hálózati réteg","hálózati"] },
+  { s:"3.5", p:"Az OSI-modell rétege, amely a kapcsolatot felépíti, fenntartja és lebontja", a:["viszonyréteg","viszony réteg","session réteg","viszony"] },
+  { s:"3.5", p:"Az OSI-modell rétege, amely a közös adatformátumért, a tömörítésért és a titkosításért felel", a:["megjelenítési réteg","megjelenítési"] },
+
+  { s:"3.6", p:"Az a művelet, amelynél minden réteg saját fejlécet tesz az adat elé", a:["beágyazás","egységbe zárás","encapsulation"] },
+  { s:"3.6", p:"Az a művelet, amelynél a vevőnél minden réteg leveszi a saját fejlécét", a:["kibontás","visszafejtés","de-encapsulation"] },
+  { s:"3.6", p:"Az adategység neve, amelyet egy adott réteg használ", a:["PDU","protokolladategység"] },
+  { s:"3.6", p:"A szállítási réteg adategységének neve", a:["szegmens"] },
+  { s:"3.6", p:"A hálózati (internet) réteg adategységének neve", a:["csomag"] },
+  { s:"3.6", p:"Az adatkapcsolati réteg adategységének neve", a:["keret"] },
+  { s:"3.6", p:"Az a megoldás, amellyel több beszélgetés adatai váltakozva haladnak egy közegen", a:["multiplexálás","multiplexelés"] },
+
+  { s:"3.7", p:"A 2. rétegbeli fizikai cím neve, amely a helyi hálózaton belül azonosít", a:["MAC-cím","MAC","fizikai cím"] },
+  { s:"3.7", p:"A 3. rétegbeli logikai cím neve, amely a végpontok között azonosít", a:["IP-cím","IP","logikai cím"] },
+  { s:"3.7", p:"Az az érték, amely megmondja, hol van a határ a cím hálózatrésze és hosztrésze között", a:["alhálózati maszk","hálózati maszk","subnet mask","maszk"] },
+  { s:"3.7", p:"A router interfésze, amelyen a saját hálózatból kifelé menő forgalom távozik", a:["alapértelmezett átjáró","átjáró","default gateway","gateway"] },
+  { s:"3.7", p:"A protokoll, amely IPv4-nél az IP-címhez tartozó MAC-címet deríti ki", a:["ARP"] },
+  { s:"3.7", p:"Ugyanennek a feladatnak a megoldása IPv6-nál", a:["ND","Neighbor Discovery","szomszédfelderítés"] },
+  { s:"3.7", p:"A cím azon része, amely megmondja, melyik hálózatban van az eszköz", a:["hálózatrész","hálózati rész"] },
+  { s:"3.7", p:"A cím azon része, amely az adott hálózaton belül azonosítja az eszközt", a:["hosztrész","gazdarész","host rész"] }
+];
+const writtenNet3 = (sec, k) => writtenFrom(ITN3_WRITTEN, sec, k);
+
 const writtenTerms = (sec, k) => writtenFrom(ITN_WRITTEN, sec, k);
 const writtenCmds  = (sec, k) => writtenFrom(ITN2_WRITTEN, sec, k);
 
@@ -3214,6 +3292,116 @@ x            = 2 ± √5   ≈ 4,24  és  −0,24</div>
 </div>
 `;
 
+/* ================= HÁLÓZATOK: MODUL 3 JEGYZET (Protokollok és modellek) ================= */
+const ITN3_JEGYZET = `
+<p class="lead">A hálózat attól működik, hogy minden eszköz <b>ugyanazokat a szabályokat</b> követi. Ezek a protokollok, és rétegekbe vannak szervezve: minden réteg a saját feladatát végzi, és a szomszédjára épít.</p>
+
+<h2>1. Kommunikáció és szabályok (3.1)</h2>
+<ul>
+  <li>három elem: <b>forrás (adó)</b> → <b>átviteli közeg</b> → <b>cél (vevő)</b></li>
+  <li><b>protokoll</b> = előre megállapodott szabályok együttese</li>
+  <li>alapkövetelmények: azonosított adó és vevő · közös nyelv és nyelvtan · egyeztetett sebesség · visszaigazolás</li>
+</ul>
+
+<h3>Az öt protokollkövetelmény</h3>
+<div class="dates">
+  <b>kódolás</b><span>az információ bitekké, majd jellé alakítása (a vevőnél dekódolás)</span>
+  <b>formátum</b><span>keret: cím + adat — mint a boríték és a benne lévő levél</span>
+  <b>méret</b><span>a nagy adat <b>szegmentálása</b> kisebb darabokra</span>
+  <b>időzítés</b><span>hozzáférési mód · áramlásszabályozás · válasz-időtúllépés</span>
+  <b>továbbítás</b><span>unicast · multicast · broadcast</span>
+</div>
+
+<h3>Továbbítási módok</h3>
+<ul>
+  <li><b>unicast</b> — egyetlen címzettnek</li>
+  <li><b>multicast</b> — eszközök egy csoportjának</li>
+  <li><b>broadcast</b> — a hálózat összes eszközének</li>
+</ul>
+
+<h2>2. Protokollfunkciók (3.2)</h2>
+<div class="dates">
+  <b>címzés</b><span>ki küldi és ki kapja az üzenetet</span>
+  <b>megbízhatóság</b><span>az elveszett adat újraküldése (TCP)</span>
+  <b>áramlásvezérlés</b><span>az adó és a vevő sebességének egyeztetése</span>
+  <b>sorszámozás</b><span>a darabok eredeti sorrendbe rakása</span>
+  <b>hibaérzékelés</b><span>a sérült adat kiszűrése ellenőrző összeggel</span>
+</div>
+<p>Négy protokolltípus: <b>hálózati kommunikáció</b> (HTTP, TCP, IP) · <b>biztonság</b> (SSL/TLS, SSH) · <b>útvonalválasztás</b> (OSPF, BGP) · <b>szolgáltatásfelderítés</b> (DNS, DHCP).</p>
+
+<h2>3. A TCP/IP protokollkészlet (3.3)</h2>
+<p>Nyílt szabvány → <b>különböző gyártók eszközei is együttműködnek</b>. (Régebbi, gyártóspecifikus készletek: AppleTalk, Novell NetWare.)</p>
+<div class="dates">
+  <b>alkalmazási</b><span>DNS · DHCP · SMTP · POP3 · IMAP · FTP · TFTP · HTTP</span>
+  <b>szállítási</b><span>TCP · UDP</span>
+  <b>internet</b><span>IPv4 · IPv6 · ICMP · NAT · OSPF</span>
+  <b>hálózat-hozzáférési</b><span>Ethernet · WLAN · ARP</span>
+</div>
+
+<h2>4. Szabványügyi szervezetek (3.4)</h2>
+<div class="dates">
+  <b>IETF</b><span>az internetszabványok fejlesztése — <b>RFC</b>-k</span>
+  <b>IANA / ICANN</b><span>IP-címek, domainnevek, protokollazonosítók kiosztása</span>
+  <b>IEEE</b><span>elektronikai szabványok: <b>802.3</b> = Ethernet, <b>802.11</b> = WLAN</span>
+  <b>EIA/TIA</b><span>kábelezés és csatlakozók</span>
+  <b>ITU-T</b><span>távközlés, szélessáv, műhold</span>
+  <b>ISO</b><span>nemzetközi szabványok — tőlük származik az <b>OSI-modell</b></span>
+  <b>ISOC / IAB</b><span>az internet nyílt fejlesztése és felügyelete</span>
+</div>
+
+<h2>5. Az OSI-modell hét rétege (3.5)</h2>
+<div class="dates">
+  <b>7 alkalmazási</b><span>a felhasználói program és a hálózat kapcsolata</span>
+  <b>6 megjelenítési</b><span>közös formátum, tömörítés, titkosítás</span>
+  <b>5 viszony</b><span>a kapcsolat felépítése, fenntartása, bontása</span>
+  <b>4 szállítási</b><span>szegmensek, végpontok közti kapcsolat, portok</span>
+  <b>3 hálózati</b><span>logikai címzés (IP) és útvonalválasztás</span>
+  <b>2 adatkapcsolati</b><span>keret, MAC-cím, közeghozzáférés</span>
+  <b>1 fizikai</b><span>bitek, jelek, kábel, csatlakozó</span>
+</div>
+<p>Megfeleltetés a TCP/IP-modellel:</p>
+<div class="column">OSI 7 · 6 · 5  →  alkalmazási
+OSI 4          →  szállítási
+OSI 3          →  internet
+OSI 2 · 1      →  hálózat-hozzáférési</div>
+
+<h2>6. Adatbeágyazás (3.6)</h2>
+<p><b>Szegmentálás:</b> a nagy adat darabokban megy. Előnye a <b>hatékonyság</b> (csak a hiányzó darab megy újra) és a <b>multiplexálás</b> (több beszélgetés egy közegen). Hátránya, hogy sorszámozni és a vevőnél sorrendbe rakni kell.</p>
+<p><b>Beágyazás:</b> minden réteg saját fejlécet tesz az adat elé.</p>
+<div class="column">adat
+ + TCP-fejléc              →  szegmens
+ + IP-fejléc               →  csomag
+ + keretfejléc és -lezárás →  keret
+ jelek a közegen           →  bitek</div>
+<div class="dates">
+  <b>alkalmazási</b><span>adat</span>
+  <b>szállítási</b><span>szegmens</span>
+  <b>internet</b><span>csomag</span>
+  <b>adatkapcsolati</b><span>keret</span>
+  <b>fizikai</b><span>bit</span>
+</div>
+<p>A vevőnél ugyanez fordítva, alulról felfelé: <b>kibontás</b> — minden réteg leveszi a saját fejlécét.</p>
+
+<h2>7. Címek: IP és MAC (3.7)</h2>
+<div class="dates">
+  <b>IP-cím</b><span>3. réteg, <b>logikai</b> cím — <b>végponttól végpontig nem változik</b>; hálózatrész + hosztrész, a határt az alhálózati maszk adja</span>
+  <b>MAC-cím</b><span>2. réteg, <b>fizikai</b> cím — csak a helyi hálózaton belül érvényes, <b>minden szakaszon új</b></span>
+</div>
+<ul>
+  <li><b>azonos hálózaton:</b> a cél MAC a célgép MAC-je, nincs szükség routerre</li>
+  <li><b>eltérő hálózaton:</b> a cél IP a végcélé, de a cél MAC az <b>alapértelmezett átjáróé</b> (a router)</li>
+  <li><b>ARP</b> — IPv4-nél az IP-címhez tartozó MAC-cím kiderítése; IPv6-nál ugyanez az <b>ND</b></li>
+</ul>
+
+<div class="note trap">
+  <p class="note-label">Tipikus hibák</p>
+  <p>Az <b>IP-cím nem változik</b> útközben, a <b>MAC-cím minden szakaszon igen</b> — ezt szokás felcserélni.</p>
+  <p>Az OSI <b>hét</b> rétegű, a TCP/IP <b>négy</b>: az OSI felső három rétege a TCP/IP alkalmazási rétegének felel meg, az alsó kettő a hálózat-hozzáférésinek.</p>
+  <p>A PDU-nevek rétegenként mások: szállítási → <b>szegmens</b>, hálózati → <b>csomag</b>, adatkapcsolati → <b>keret</b>.</p>
+  <p>A kódolás nem titkosítás: a kódolás a jellé alakítás, a titkosítás külön protokollfunkció (SSL/TLS, SSH).</p>
+</div>
+`;
+
 const SUBJECTS = [
   {
     id: "matek",
@@ -3766,7 +3954,7 @@ const SUBJECTS = [
     id: "halozatok",
     name: "Hálózatok",
     meta: "CCNA ITN · csoport_1 · KA",
-    desc: "CCNA Modul 1 és 2 — hálózati alapok, switch- és végberendezés-konfiguráció.",
+    desc: "CCNA Modul 1, 2, 3 és 5 — hálózati alapok, eszközkonfiguráció, protokollok és modellek, számrendszerek.",
     tagline: "Modulonként egy mappa: benne a szakaszkvízek, a vegyes kvíz és az írásbeli feladatsorok. A vegyes kvíz minden indításkor más 20 kérdést hoz, az írásbeliben pedig te írod be a fogalmat vagy a parancsot.",
     groups: [
       { kind:"modul1",   label:"Modul 1 — A hálózat jelene", note:"szakaszonként" },
@@ -4514,6 +4702,380 @@ const SUBJECTS = [
         hint: ITN2_HINT,
         build: writtenCmds(sec)
       })),
+      {
+        kind: "modul3",
+        id: "itn-3-jegy",
+        lesson: true,
+        title: "Modul 3 — jegyzet (3.1–3.7)",
+        sub: "a teljes modul egy lapon: szabályok, protokollok, rétegek, beágyazás, címek",
+        eyebrow: "CCNA ITN · Modul 3",
+        heading: "Protokollok és modellek",
+        body: ITN3_JEGYZET,
+        practice: ["itn-m3-mix", "itn-3-5", "itn-3-6"]
+      },
+      {
+        kind: "modul3",
+        id: "itn-3-1",
+        title: "3.1 A szabályok",
+        sub: "a kommunikáció elemei, protokollkövetelmények, kódolás, időzítés, továbbítás",
+        questions: [
+          { q:"Mi a kommunikáció három alapeleme?",
+            options:["A forrás (adó), a cél (vevő) és az átviteli közeg","A switch, a router és a kábel","Az adat, a sebesség és az idő","A küldő, a jelszó és a protokoll"],
+            correct:0,
+            explain:"Minden kommunikáció egy forrásból indul, egy átviteli közegen halad, és egy célba érkezik. A hálózaton ehhez jönnek a szabályok, vagyis a protokollok." },
+          { q:"Mit jelent a protokoll a hálózatokban?",
+            options:["A kommunikációra vonatkozó, előre megállapodott szabályok együttesét","Egy kábeltípust","Az eszköz operációs rendszerét","A hálózati kártya gyártóját"],
+            correct:0,
+            explain:"A protokoll szabályok együttese: meghatározza, hogyan néz ki az üzenet, hogyan megy el és hogyan érkezik meg. Enélkül az eszközök nem értenék meg egymást." },
+          { q:"Melyik tartozik a kommunikáció alapvető követelményei közé?",
+            options:["Azonosított adó és vevő, közös nyelv és nyelvtan, egyeztetett sebesség, visszaigazolás","Azonos gyártójú eszközök","Azonos operációs rendszer a két végen","Azonos hosszúságú kábel"],
+            correct:0,
+            explain:"Ugyanez igaz az emberi beszélgetésre is: tudni kell, kihez beszélünk, közös nyelvet kell használni, nem lehet túl gyorsan hadarni, és jelezni kell, hogy megértettük." },
+          { q:"Mit jelent az üzenetkódolás?",
+            options:["Az információ átalakítása az átvitelhez megfelelő formába: bitekké, majd jellé","Az üzenet titkosítását jelszóval","Az üzenet tömörítését","A cím hozzáadását az üzenethez"],
+            correct:0,
+            explain:"Az adó kódol: az információból bitek, majd a közegnek megfelelő jelek (elektromos, fény- vagy rádiójel) lesznek. A vevő ugyanezt visszafelé dekódolja. Ez nem azonos a titkosítással." },
+          { q:"Mire való az üzenetformátum és a beágyazás?",
+            options:["Hogy az üzenet címzéssel ellátott, a közegnek megfelelő keretbe kerüljön","Hogy az üzenet rövidebb legyen","Hogy gyorsabban haladjon a kábelen","Hogy titkos maradjon a tartalom"],
+            correct:0,
+            explain:"Olyan, mint a boríték: a levél (az adat) köré kerül a feladó és a címzett adata. A hálózaton ez a keret, benne a cím és az adat." },
+          { q:"Miért kell szegmentálni a nagy üzeneteket?",
+            options:["Mert a hálózat csak korlátozott méretű egységeket tud továbbítani","Mert így titkosabb az adat","Mert a vevő egyszerre csak egy üzenetet tud fogadni","Mert a kábel hossza korlátozott"],
+            correct:0,
+            explain:"Minden közegnek van felső méretkorlátja (MTU), ezért a nagy adatot darabokra bontjuk. Ráadásul így csak az elveszett darabot kell újraküldeni." },
+          { q:"Mit csinál az áramlásszabályozás (flow control)?",
+            options:["Egyezteti az adó és a vevő közötti sebességet, hogy ne vesszen el adat","Kiválasztja a legjobb útvonalat","Elosztja a sávszélességet a felhasználók között","Kijavítja a sérült biteket"],
+            correct:0,
+            explain:"Ha az adó gyorsabban küld, mint ahogy a vevő feldolgozni tudja, adat veszne el. Az áramlásszabályozás ezt előzi meg." },
+          { q:"Mire való a válasz-időtúllépés (response timeout)?",
+            options:["Megszabja, meddig vár az eszköz a válaszra, mielőtt újraküldene vagy hibát jelezne","Megszabja, mennyi ideig lehet bejelentkezve","Lekapcsolja a nem használt portokat","Törli a régi üzeneteket a memóriából"],
+            correct:0,
+            explain:"Válasz nélkül az eszköz nem várhat örökké: egy idő után újraküldi az üzenetet, vagy jelzi, hogy nem jött válasz." },
+          { q:"Mit határoz meg a hozzáférési mód (access method)?",
+            options:["Azt, hogy mikor küldhet egy eszköz, hogy ne ütközzenek az üzenetek","Azt, hogy ki léphet be az eszközbe jelszóval","Azt, hogy melyik kábelt kell használni","Azt, hogy mekkora lehet egy üzenet"],
+            correct:0,
+            explain:"Ha egyszerre többen küldenek ugyanarra a közegre, ütközés történik. A hozzáférési mód szabályozza, mikor jöhet szóba az adás — mint egy beszélgetésben a szó átvétele." },
+          { q:"Melyik továbbítási mód juttatja el az üzenetet a hálózat összes eszközéhez?",
+            options:["A broadcast","A unicast","A multicast","A szegmentálás"],
+            correct:0,
+            explain:"Unicast = egyetlen címzett, multicast = eszközök egy csoportja, broadcast = a hálózat minden eszköze." }
+        ]
+      },
+      {
+        kind: "modul3",
+        id: "itn-3-2",
+        title: "3.2 Protokollok",
+        sub: "protokolltípusok és protokollfunkciók, a protokollok együttműködése",
+        questions: [
+          { q:"Mit határoz meg egy hálózati protokoll?",
+            options:["Az üzenet formátumát, a küldés és a fogadás módját, és a hibák kezelését","Csak a kábel típusát","Csak az eszköz nevét","Csak az átviteli sebességet"],
+            correct:0,
+            explain:"A protokoll leírja, hogyan épül fel az üzenet, hogyan megy el, hogyan érkezik meg, és mi történik hiba esetén." },
+          { q:"Melyik protokolltípusba tartozik az SSL/TLS és az SSH?",
+            options:["Hálózatbiztonsági protokollok","Útvonalválasztó protokollok","Szolgáltatásfelderítő protokollok","Fizikai rétegbeli szabványok"],
+            correct:0,
+            explain:"A biztonsági protokollok a hitelesítést és a titkosítást végzik: az SSL/TLS a webes forgalomnál, az SSH a titkosított távoli hozzáférésnél." },
+          { q:"Melyik két protokoll végez útvonalválasztást?",
+            options:["Az OSPF és a BGP","A HTTP és az FTP","A DNS és a DHCP","A TCP és az UDP"],
+            correct:0,
+            explain:"Az OSPF egy szervezeten belül, a BGP az internetszolgáltatók között számolja ki a legjobb utat." },
+          { q:"Mi a DNS feladata?",
+            options:["A tartományneveket IP-címekre fordítja","Automatikusan kiosztja az IP-címeket","Titkosítja a forgalmat","Útvonalat választ a csomagoknak"],
+            correct:0,
+            explain:"A DNS szolgáltatásfelderítő protokoll: a www.example.com névből megadja a hozzá tartozó IP-címet." },
+          { q:"Mi a DHCP feladata?",
+            options:["Automatikusan kiosztja a végberendezéseknek az IP-beállításokat","Nevet fordít IP-címre","Megbízható szállítást ad","Hitelesíti a felhasználót"],
+            correct:0,
+            explain:"A DHCP automatikusan ad IP-címet, maszkot, átjárót és DNS-kiszolgálót a végberendezéseknek, így nem kell kézzel beállítani." },
+          { q:"Melyik protokollfunkció gondoskodik az elveszett adat újraküldéséről?",
+            options:["A megbízhatóság","A címzés","A kódolás","A hibaérzékelés"],
+            correct:0,
+            explain:"A megbízhatóság a TCP feladata: ha egy szegmens elveszik, újra elküldi. A hibaérzékelés ettől külön dolog — az a sérült adatot szűri ki." },
+          { q:"Mire való a sorszámozás?",
+            options:["Hogy a vevő eredeti sorrendbe tudja rakni a darabokat","Hogy a címzettet azonosítsa","Hogy az üzenet rövidebb legyen","Hogy titkosítsa az adatot"],
+            correct:0,
+            explain:"A darabok nem feltétlenül azonos úton és sorrendben érkeznek meg, ezért sorszámot kapnak — ebből állítja vissza a vevő az eredeti adatot." },
+          { q:"Mire való a hibaérzékelés?",
+            options:["Az átvitel közben megsérült adat kiszűrésére","A rossz kábel megkeresésére","A támadások blokkolására","Az útvonal kiválasztására"],
+            correct:0,
+            explain:"Az adó ellenőrző összeget számol az adatból, a vevő újraszámolja: ha nem egyezik, az adat sérült, és eldobja." },
+          { q:"Egy weboldal lekérésénél melyik protokoll felel a tartalom formájáért és továbbításáért?",
+            options:["A HTTP","A TCP","Az IP","Az Ethernet"],
+            correct:0,
+            explain:"A HTTP mondja meg, hogyan kéri a böngésző az oldalt, és hogyan küldi vissza a szerver a tartalmat." },
+          { q:"Ugyanennél a lekérésnél melyik protokoll viszi az üzenetet a helyi hálózat közegén?",
+            options:["Az Ethernet","A HTTP","A TCP","Az IP"],
+            correct:0,
+            explain:"A négy protokoll egymásra épül: HTTP a tartalom, TCP a megbízható szállítás és a portok, IP a végpontok közti címzés, Ethernet pedig a helyi közegen való átvitel." }
+        ]
+      },
+      {
+        kind: "modul3",
+        id: "itn-3-3",
+        title: "3.3 Protokollkészletek",
+        sub: "TCP/IP rétegek, melyik protokoll hova tartozik, nyílt szabványok",
+        questions: [
+          { q:"Mi a protokollkészlet?",
+            options:["Egymással együttműködő protokollok rétegekbe szervezett csoportja","Egyetlen protokoll több változata","A hálózati eszközök listája","Egy gyártó termékcsaládja"],
+            correct:0,
+            explain:"A protokollok nem egyedül dolgoznak: a készletben minden réteg protokolljai a szomszédos rétegre épülnek." },
+          { q:"Melyik protokollkészletet használja ma az internet?",
+            options:["A TCP/IP-t","Az AppleTalket","A Novell NetWare-t","Az IPX/SPX-et"],
+            correct:0,
+            explain:"A TCP/IP nyílt szabvány, és minden mai hálózati eszköz ezt használja. Az AppleTalk és a NetWare régebbi, gyártóspecifikus készletek." },
+          { q:"Mi a nyílt szabvány legnagyobb előnye?",
+            options:["Különböző gyártók eszközei is együtt tudnak működni","Olcsóbbak az eszközök","Gyorsabb az átvitel","Nem kell hozzá konfiguráció"],
+            correct:0,
+            explain:"Ha mindenki ugyanazt a nyilvános szabványt követi, egy Cisco router és egy másik gyártó switche is megérti egymást." },
+          { q:"Mi a TCP/IP modell négy rétege alulról felfelé?",
+            options:["Hálózat-hozzáférési, internet, szállítási, alkalmazási","Fizikai, adatkapcsolati, hálózati, szállítási","Alkalmazási, szállítási, internet, fizikai","Internet, hálózat-hozzáférési, alkalmazási, szállítási"],
+            correct:0,
+            explain:"A TCP/IP négy rétegű: legalul a hálózat-hozzáférési, fölötte az internet, majd a szállítási, legfelül az alkalmazási réteg." },
+          { q:"Melyik rétegbe tartozik a HTTP, a DNS és a DHCP?",
+            options:["Az alkalmazási rétegbe","A szállítási rétegbe","Az internetrétegbe","A hálózat-hozzáférési rétegbe"],
+            correct:0,
+            explain:"Az alkalmazási réteg protokolljai adják a felhasználói szolgáltatásokat: weblap, névfeloldás, automatikus címkiosztás, levelezés, fájlátvitel." },
+          { q:"Melyik rétegbe tartozik a TCP és az UDP?",
+            options:["A szállítási rétegbe","Az alkalmazási rétegbe","Az internetrétegbe","A hálózat-hozzáférési rétegbe"],
+            correct:0,
+            explain:"A szállítási réteg kezeli a végpontok közti kapcsolatot és a portokat: a TCP megbízható és visszaigazolt, az UDP gyors, de nem igazol vissza." },
+          { q:"Melyik protokollok tartoznak az internetrétegbe?",
+            options:["Az IPv4, az IPv6 és az ICMP","A TCP és az UDP","Az Ethernet és az ARP","A HTTP és az FTP"],
+            correct:0,
+            explain:"Az internetréteg a hálózatok közötti címzésért és útvonalválasztásért felel. Az ICMP ennek a rétegnek a hibajelző protokollja — ezt használja a ping is." },
+          { q:"Melyik protokollok tartoznak a hálózat-hozzáférési réteghez?",
+            options:["Az Ethernet és az ARP","A TCP és az IP","A DNS és a DHCP","Az OSPF és a BGP"],
+            correct:0,
+            explain:"A hálózat-hozzáférési réteg a helyi közegen való átvitelt intézi: keretezés, MAC-címek, illesztőprogramok. Ide tartozik az Ethernet, a WLAN és az ARP is." },
+          { q:"Melyik két régebbi, gyártóspecifikus protokollkészletet említi a tananyag?",
+            options:["Az AppleTalket és a Novell NetWare-t","A TCP/IP-t és az OSI-t","Az Ethernetet és a WLAN-t","A HTTP-t és az FTP-t"],
+            correct:0,
+            explain:"Ezek zárt, egy-egy gyártóhoz kötődő készletek voltak. A TCP/IP azért győzött, mert nyílt szabvány." },
+          { q:"Mi történik, amikor a böngésző lekér egy weboldalt?",
+            options:["A rétegek protokolljai egymásra épülve működnek együtt: HTTP, TCP, IP, Ethernet","Csak a HTTP dolgozik","A böngésző közvetlenül a kábelre ír","Minden protokoll egyszerre, sorrend nélkül fut"],
+            correct:0,
+            explain:"Minden réteg hozzáteszi a magáét, és a vevőnél fordított sorrendben bontják ki. Ezért nevezzük a készletet rétegzettnek." }
+        ]
+      },
+      {
+        kind: "modul3",
+        id: "itn-3-4",
+        title: "3.4 Szabványügyi szervezetek",
+        sub: "nyílt szabványok, IETF, RFC, IANA, IEEE, ISO",
+        questions: [
+          { q:"Mit jelent az, hogy egy szabvány nyílt?",
+            options:["Bárki hozzáférhet, és bármelyik gyártó követheti","Csak a tagoknak elérhető","Ingyenes eszközöket jelent","Jelszó nélkül használható hálózatot jelent"],
+            correct:0,
+            explain:"A nyílt szabvány nyilvános, így a gyártók egymástól függetlenül fejleszthetnek olyan eszközöket, amelyek együttműködnek." },
+          { q:"Melyik szervezet fejleszti és tartja karban az internetszabványokat?",
+            options:["Az IETF","Az IEEE","Az EIA/TIA","Az ITU-T"],
+            correct:0,
+            explain:"Az IETF dolgozza ki az internetprotokollok szabványait, és RFC-kben teszi közzé őket." },
+          { q:"Mi az RFC?",
+            options:["Az internetszabványokat leíró, számozott dokumentum","Egy hálózati protokoll","Egy kábeltípus","Egy hibaüzenet a routeren"],
+            correct:0,
+            explain:"A Request for Comments dokumentumokban jelennek meg a protokollok pontos leírásai — mindegyiknek saját száma van." },
+          { q:"Melyik szervezet felel az IP-címek és a protokollazonosítók kiosztásáért?",
+            options:["Az IANA","Az IEEE","Az ISO","Az IETF"],
+            correct:0,
+            explain:"Az IANA kezeli az IP-címek, a protokollszámok és a portszámok kiosztását; a domainnevek és a címzés általános felügyelete az ICANN-hoz tartozik." },
+          { q:"Melyik szervezet adja a vezetékes és vezeték nélküli hálózatok elektronikai szabványait?",
+            options:["Az IEEE","Az ISOC","Az IANA","Az IRTF"],
+            correct:0,
+            explain:"Az IEEE szabványosítja többek között az Ethernetet és a vezeték nélküli hálózatokat. A 802-es szabványcsalád az övé." },
+          { q:"Melyik IEEE-szabvány írja le az Ethernetet?",
+            options:["A 802.3","A 802.11","A 802.15","Az RFC 791"],
+            correct:0,
+            explain:"A 802.3 az Ethernet (vezetékes LAN) szabványa, a 802.11 a vezeték nélküli hálózaté." },
+          { q:"Melyik IEEE-szabvány írja le a vezeték nélküli hálózatot (WLAN)?",
+            options:["A 802.11","A 802.3","A 802.1","A 802.5"],
+            correct:0,
+            explain:"A WLAN-eszközök a 802.11 szabványt követik — ezért tud egy bármilyen gyártótól származó laptop csatlakozni egy másik gyártó hozzáférési pontjához." },
+          { q:"Melyik szervezet felel a kábelezési és csatlakozószabványokért?",
+            options:["Az EIA/TIA","Az ITU-T","Az ISOC","Az IAB"],
+            correct:0,
+            explain:"Az EIA/TIA szabványai írják le például a strukturált kábelezést és a csatlakozók bekötését." },
+          { q:"Melyik szervezettől származik az OSI-modell?",
+            options:["Az ISO-tól","Az IEEE-től","Az IETF-től","Az ICANN-tól"],
+            correct:0,
+            explain:"Az ISO nemzetközi szabványügyi szervezet; az OSI hétrétegű referenciamodellje az ő munkájuk." },
+          { q:"Mivel foglalkozik az ISOC?",
+            options:["Az internet nyílt fejlesztésének és az oktatásnak a támogatásával","Az IP-címek kiosztásával","A kábelszabványokkal","Az útvonalválasztással"],
+            correct:0,
+            explain:"Az Internet Society az internet nyílt fejlődését és hozzáférhetőségét támogatja; az IAB a szabványosítás általános felügyeletét végzi." }
+        ]
+      },
+      {
+        kind: "modul3",
+        id: "itn-3-5",
+        title: "3.5 Referenciamodellek",
+        sub: "az OSI hét rétege, a TCP/IP négy rétege és a megfeleltetésük",
+        questions: [
+          { q:"Miért használunk rétegmodellt a hálózatok leírására?",
+            options:["Mert közös nyelvet ad, és a rétegek egymástól függetlenül fejleszthetők","Mert így gyorsabb a hálózat","Mert kevesebb kábel kell hozzá","Mert csak így lehet IP-címet adni"],
+            correct:0,
+            explain:"A rétegmodell felosztja a feladatokat: mindenki ugyanazt érti egy réteg alatt, és egy réteg változása nem borítja fel a többit." },
+          { q:"Hány rétegű az OSI-modell?",
+            options:["Hét","Négy","Öt","Három"],
+            correct:0,
+            explain:"Az OSI hétrétegű referenciamodell. A TCP/IP ezzel szemben négy rétegű, és ez a ténylegesen használt modell." },
+          { q:"Mi az OSI fizikai rétegének (1.) a feladata?",
+            options:["A biteket jellé alakítva a közegre tenni, és onnan visszaolvasni","Az útvonal kiválasztása","A kapcsolat felépítése és bontása","A tömörítés és a titkosítás"],
+            correct:0,
+            explain:"A fizikai réteg a kábelekkel, csatlakozókkal és jelekkel foglalkozik — itt már csak bitek vannak." },
+          { q:"Mi az OSI adatkapcsolati rétegének (2.) a feladata?",
+            options:["Keretekbe foglalni az adatot, és MAC-címekkel a közegen továbbítani","Logikai címzés és útvonalválasztás","A portok kezelése","A felhasználói program kiszolgálása"],
+            correct:0,
+            explain:"A 2. réteg a helyi hálózaton belüli átvitelt intézi: keret, MAC-cím, közeghozzáférés." },
+          { q:"Mi az OSI hálózati rétegének (3.) a feladata?",
+            options:["A logikai címzés (IP) és az útvonalválasztás a hálózatok között","A bitek jellé alakítása","A titkosítás","A kapcsolat fenntartása"],
+            correct:0,
+            explain:"A 3. réteg visz át adatot különböző hálózatok között — ezen a rétegen dolgozik az IP és a router." },
+          { q:"Mi az OSI szállítási rétegének (4.) a feladata?",
+            options:["A végpontok közötti kapcsolat kezelése, szegmensekkel és portokkal","A keretek továbbítása a kábelen","A domainnevek feloldása","A jelek erősítése"],
+            correct:0,
+            explain:"A 4. réteg a két végpont közti párbeszédet kezeli: szegmensekre bont, sorszámoz, portszámmal azonosítja az alkalmazást." },
+          { q:"Mi az OSI viszonyrétegének (5.) a feladata?",
+            options:["A kapcsolat felépítése, fenntartása és lebontása a két fél között","A bitek továbbítása","Az útvonal kiszámítása","A MAC-címek kezelése"],
+            correct:0,
+            explain:"A viszonyréteg (session) tartja életben a párbeszédet, és gondoskodik a helyreállításáról, ha megszakad." },
+          { q:"Mi az OSI megjelenítési rétegének (6.) a feladata?",
+            options:["A közös adatformátum, a tömörítés és a titkosítás","Az IP-címek kiosztása","A keretek ellenőrzése","A kábel típusának meghatározása"],
+            correct:0,
+            explain:"A megjelenítési réteg gondoskodik róla, hogy a két fél ugyanúgy értelmezze az adatot — ide tartozik a kódolás, a tömörítés és a titkosítás is." },
+          { q:"Hogyan felel meg az OSI felső három rétege a TCP/IP modellnek?",
+            options:["Az OSI 5., 6. és 7. rétege együtt a TCP/IP alkalmazási rétegének felel meg","Mindhárom a szállítási rétegnek felel meg","Nincs köztük kapcsolat","Az OSI 7. rétege az internetrétegnek felel meg"],
+            correct:0,
+            explain:"A TCP/IP alkalmazási rétege lefedi az OSI viszony-, megjelenítési és alkalmazási rétegét; az OSI 2. és 1. rétege pedig a hálózat-hozzáférési rétegnek felel meg." },
+          { q:"Melyik OSI-rétegeknek felel meg a TCP/IP hálózat-hozzáférési rétege?",
+            options:["Az adatkapcsolati és a fizikai rétegnek","A hálózati és a szállítási rétegnek","Csak a fizikai rétegnek","Az alkalmazási rétegnek"],
+            correct:0,
+            explain:"A TCP/IP egyetlen rétegbe vonja össze az OSI 2. (adatkapcsolati) és 1. (fizikai) rétegét." }
+        ]
+      },
+      {
+        kind: "modul3",
+        id: "itn-3-6",
+        title: "3.6 Adatbeágyazás",
+        sub: "szegmentálás, multiplexálás, beágyazás és a PDU-nevek",
+        questions: [
+          { q:"Mit jelent a szegmentálás?",
+            options:["A nagy adat kisebb darabokra bontását az átvitelhez","Az adat titkosítását","A hálózat kisebb részekre osztását","A fölösleges adat törlését"],
+            correct:0,
+            explain:"A nagy adatfolyamot kisebb egységekre bontjuk, mert így hatékonyabb és rugalmasabb az átvitel." },
+          { q:"Mi a szegmentálás egyik fő előnye?",
+            options:["Hiba esetén csak a hiányzó darabot kell újraküldeni","Teljesen megszünteti a hibákat","Nem kell hozzá címzés","Titkosítja az adatot"],
+            correct:0,
+            explain:"Ha egyben menne minden, egyetlen hiba miatt az egészet újra kellene küldeni. Darabokban csak a hiányzó rész megy újra." },
+          { q:"Mit jelent a multiplexálás?",
+            options:["Több beszélgetés adatai váltakozva haladnak ugyanazon a közegen","Egy üzenet több példányban megy el","Két kábelt használunk egyszerre","Az adat kétszer akkora sebességgel megy"],
+            correct:0,
+            explain:"A darabolás teszi lehetővé, hogy egyszerre több kommunikáció osztozzon a hálózaton: a darabok felváltva haladnak." },
+          { q:"Mi a szegmentálás hátránya?",
+            options:["Összetettebb lesz: sorszámozni kell, és a vevőnek sorrendbe kell raknia a darabokat","Lassabb lesz a kábel","Több IP-cím kell hozzá","Nem lehet mellette titkosítani"],
+            correct:0,
+            explain:"A darabok eltérő úton és sorrendben érkezhetnek, ezért sorszám kell, és a vevőnek össze kell raknia őket." },
+          { q:"Mit jelent a beágyazás (encapsulation)?",
+            options:["Minden réteg saját fejlécet tesz az adat elé, mielőtt továbbadja","Az adat tömörítését","Az adat titkosítását","Az adat törlését a küldés után"],
+            correct:0,
+            explain:"Ahogy az adat lefelé halad a rétegeken, minden réteg hozzáteszi a saját vezérlőinformációját — ez a beágyazás." },
+          { q:"Mi a PDU?",
+            options:["Az adategység neve azon a rétegen, ahol éppen jár","Egy hálózati eszköz","Egy protokoll neve","Egy címzési forma"],
+            correct:0,
+            explain:"A protokolladategység (PDU) rétegenként más nevet kap, mert más vezérlőinformáció tartozik hozzá." },
+          { q:"Mi a szállítási réteg PDU-jának a neve?",
+            options:["Szegmens","Csomag","Keret","Bit"],
+            correct:0,
+            explain:"Alkalmazási réteg: adat · szállítási: szegmens · hálózati (internet): csomag · adatkapcsolati: keret · fizikai: bit." },
+          { q:"Mi a hálózati (internet) réteg PDU-jának a neve?",
+            options:["Csomag","Szegmens","Keret","Adat"],
+            correct:0,
+            explain:"Az IP-fejléc hozzáadásával lesz a szegmensből csomag — ez megy a hálózatok között." },
+          { q:"Mi az adatkapcsolati réteg PDU-jának a neve?",
+            options:["Keret","Csomag","Szegmens","Bit"],
+            correct:0,
+            explain:"A 2. rétegen a csomag köré keretfejléc és -lezárás kerül; a keret már a helyi közegen halad." },
+          { q:"Mi történik a vevő oldalán?",
+            options:["Kibontás: alulról felfelé minden réteg leveszi a saját fejlécét","Ugyanaz, mint az adónál: minden réteg fejlécet tesz rá","Semmi, az adat változatlanul érkezik","A fejléceket a kábel távolítja el"],
+            correct:0,
+            explain:"A kibontás (de-encapsulation) a beágyazás fordítottja: a bitekből keret, abból csomag, abból szegmens, végül adat lesz." }
+        ]
+      },
+      {
+        kind: "modul3",
+        id: "itn-3-7",
+        title: "3.7 Adathozzáférés",
+        sub: "IP- és MAC-cím, azonos és eltérő hálózat, alapértelmezett átjáró, ARP",
+        questions: [
+          { q:"Melyik két címfajtát használja a hálózati kommunikáció?",
+            options:["A 3. rétegbeli logikai (IP) és a 2. rétegbeli fizikai (MAC) címet","Csak az IP-címet","A nevet és a jelszót","A portszámot és a kábel sorszámát"],
+            correct:0,
+            explain:"Az IP-cím a végpontokat azonosítja a hálózatok között, a MAC-cím pedig az eszközt az adott helyi hálózaton belül." },
+          { q:"Miből áll egy IPv4-cím két része?",
+            options:["Hálózatrészből és hosztrészből","Gyártói és sorozatszám részből","Forrás- és célrészből","Fejlécből és adatrészből"],
+            correct:0,
+            explain:"Az alhálózati maszk mondja meg, hol a határ a kettő között: a hálózatrész a hálózatot, a hosztrész az azon belüli eszközt azonosítja." },
+          { q:"Mi dönti el, hogy két eszköz ugyanabban a hálózatban van-e?",
+            options:["Az, hogy az IP-címük hálózatrésze egyezik-e","Az, hogy ugyanaz-e a gyártójuk","Az, hogy egy szobában vannak-e","Az, hogy azonos-e a MAC-címük eleje"],
+            correct:0,
+            explain:"Az eszköz az alhálózati maszk segítségével hasonlítja össze a saját és a cél címének hálózatrészét." },
+          { q:"Azonos hálózaton belül mi lesz a keret célcíme?",
+            options:["A célgép MAC-címe","Az alapértelmezett átjáró MAC-címe","A router IP-címe","A broadcast IP-cím"],
+            correct:0,
+            explain:"Ha a cél ugyanabban a hálózatban van, nincs szükség routerre: a keret egyenesen a célgép MAC-címére megy." },
+          { q:"Eltérő hálózat esetén mi lesz a keret célcíme?",
+            options:["Az alapértelmezett átjáró (a router) MAC-címe","A távoli gép MAC-címe","A saját MAC-címed","A DNS-kiszolgáló MAC-címe"],
+            correct:0,
+            explain:"A helyi hálózatból csak a routerig látunk el, ezért a keret az átjáró MAC-címére megy — a csomag cél IP-címe viszont végig a távoli gépé marad." },
+          { q:"Mi az alapértelmezett átjáró?",
+            options:["A router interfésze, amelyen a saját hálózatból kifelé megy a forgalom","A leggyorsabb switch a hálózatban","A szolgáltató központi kiszolgálója","A hálózat első bekapcsolt gépe"],
+            correct:0,
+            explain:"Ha a cél más hálózatban van, az eszköz az alapértelmezett átjárónak adja át a csomagot, és onnantól a routerek viszik tovább." },
+          { q:"Mi változik a csomag útja során?",
+            options:["A MAC-címek minden szakaszon, az IP-címek viszont nem","Az IP-címek minden routernél","Mindkettő változatlan marad","Mindkettő minden eszköznél megváltozik"],
+            correct:0,
+            explain:"A 2. rétegbeli címek csak az adott szakaszra érvényesek: a router leveszi a régi keretet, és újat épít a következő szakasz MAC-címeivel. A cél IP-cím végig ugyanaz." },
+          { q:"Mire való az ARP?",
+            options:["Egy ismert IPv4-címhez tartozó MAC-cím kiderítésére","Az IP-cím kiosztására","A név feloldására","Az útvonal kiszámítására"],
+            correct:0,
+            explain:"A keret megépítéséhez MAC-cím kell. Ha az eszköz csak az IP-címet ismeri, az ARP kérdezi meg a helyi hálózaton, kié az a cím." },
+          { q:"Mi végzi ugyanezt a feladatot IPv6 esetén?",
+            options:["A szomszédfelderítés (ND, Neighbor Discovery)","Az ARP","A DHCP","Az ICMP echo"],
+            correct:0,
+            explain:"Az IPv6 nem használ ARP-t: a Neighbor Discovery deríti ki a szomszédos eszközök fizikai címét." },
+          { q:"Meddig érvényes egy MAC-cím?",
+            options:["Csak az adott helyi hálózaton belül — a routeren nem megy át","Az egész interneten","Amíg a gép be van kapcsolva","Amíg a DHCP-bérlet tart"],
+            correct:0,
+            explain:"A MAC-cím fizikai, helyi cím: a router nem továbbítja, hanem minden szakaszon új keretet és új MAC-címeket használ." }
+        ]
+      },
+      {
+        kind: "dolgozat3",
+        id: "itn-m3-mix",
+        title: "Modul 3 — vegyes, 20 kérdés",
+        sub: "véletlen válogatás a 3.1–3.7 összes kérdéséből, minden indításkor más",
+        build: mixFrom("halozatok", "modul3", 20)
+      },
+      ...ITN3_SECTIONS.map(([sec, name]) => ({
+        kind: "irasbeli3",
+        id: "itn-ir-" + sec.replace(".", "-"),
+        written: true,
+        n: ITN3_WRITTEN.filter(x => x.s === sec).length,
+        title: "Írásbeli — " + sec + " " + name,
+        sub: "a leírás alapján te írod be a fogalmat vagy a rövidítést",
+        hint: ITN3_HINT,
+        build: writtenNet3(sec)
+      })),
+      {
+        kind: "irasbeli3",
+        id: "itn-ir-m3",
+        written: true,
+        n: 20,
+        title: "Írásbeli — Modul 3 vegyes, 20 tétel",
+        sub: "3.1–3.7 együtt, minden indításkor más tételek",
+        hint: ITN3_HINT,
+        build: writtenNet3(null, 20)
+      },
       {
         kind: "modul5",
         id: "itn-5-jegy",
@@ -7721,6 +8283,8 @@ if(!PUBLIC_BUILD) (function(){
       kinds:["modul1", "dolgozat", "irasbeli"] },
     { id:"itn-m2", title:"Modul 2 — Switch és végberendezés alapkonfigurációja", sub:"2.1–2.8: szakaszkvízek, vegyes és írásbeli",
       kinds:["modul2", "dolgozat2", "irasbeli2"] },
+    { id:"itn-m3", title:"Modul 3 — Protokollok és modellek", sub:"3.1–3.7: jegyzet, szakaszkvízek, vegyes és írásbeli",
+      kinds:["modul3", "dolgozat3", "irasbeli3"] },
     { id:"itn-m5", title:"Modul 5 — Számrendszerek", sub:"5.1: átváltás mindkét irányban",
       kinds:["modul5"] }
   ];

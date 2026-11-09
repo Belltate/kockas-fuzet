@@ -513,6 +513,29 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
   .work .sum{margin-top:.3rem}
   .column{font-size:.92rem;padding:.55rem .7rem}
 }
+/* ---------- kereső a tananyaglistán ---------- */
+.search{display:flex;align-items:center;gap:.4rem;margin:0 0 .75rem 0;
+  background:var(--paper-raised);border:1px solid var(--rule);border-radius:var(--radius);padding:0 .65rem}
+.search:focus-within{border-color:var(--accent)}
+.s-input{flex:1;min-width:0;font-family:"Familjen Grotesk",sans-serif;font-size:1rem;
+  background:none;border:0;color:var(--ink);padding:.65rem 0}
+.s-input::placeholder{color:var(--ink-faint)}
+.s-input:focus{outline:none}
+.s-input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.s-clear{background:none;border:0;color:var(--ink-faint);font-size:1.35rem;line-height:1;
+  cursor:pointer;padding:.1rem .25rem}
+.s-clear:hover{color:var(--accent)}
+.s-hit{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--radius);
+  padding:.7rem .9rem;margin:0 0 .9rem 0}
+.s-hit .s-lead{display:block;margin-bottom:.25rem;font-family:"JetBrains Mono",monospace;
+  font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;color:var(--accent-ink)}
+.s-hit .s-title{display:block;font-family:"Familjen Grotesk",sans-serif;font-weight:600;
+  font-size:1.05rem;line-height:1.3}
+.s-hit .s-sub{display:block;margin-top:.15rem;color:var(--ink-soft);font-size:.9rem;line-height:1.4}
+.s-hit mark{background:none;color:var(--accent-ink);font-weight:700;
+  text-decoration:underline;text-underline-offset:.2em}
+.s-empty{color:var(--ink-soft);font-size:.95rem;margin:0 0 1rem 0}
 /* ---------- emelő / forgatónyomaték ábra ---------- */
 .fig-bar{stroke:currentColor;stroke-width:5;stroke-linecap:round;fill:none}
 .fig-pivot{fill:var(--ink-soft);stroke:none}
@@ -629,6 +652,14 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
     <p class="eyebrow" id="topic-eyebrow"></p>
     <h1 id="topic-heading"></h1>
     <p class="tagline" id="topic-tagline"></p>
+    <div class="search">
+      <input id="t-search" class="s-input" type="search" enterkeyhint="go" autocomplete="off"
+             autocapitalize="off" spellcheck="false" aria-label="Keresés a tananyagok közt"
+             placeholder="Keresés a tananyagok közt…">
+      <button class="s-clear hidden" id="t-clear" type="button" aria-label="Keresés törlése">×</button>
+    </div>
+    <button class="s-hit hidden" id="t-hit" type="button"></button>
+    <p class="s-empty hidden" id="t-empty">Ebben a nézetben nincs ilyen tananyag.</p>
     <div class="topics" id="topic-list"></div>
   </section>
 
@@ -2358,6 +2389,37 @@ const ITN2_WRITTEN = [
 /* magyar/angol fogalom egységesítése: kisbetű, ékezet és írásjel nélkül, névelő nélkül */
 const normHu = v => String(v).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   .replace(/[-_/.,;:!?()"'„”’]/g, " ").replace(/\s+/g, " ").trim().replace(/^(a|az|the) /, "");
+/* ================= KERESŐ (pontozás) ================= */
+/* kisbetű + ékezet nélkül, de a hossz marad: így az eredeti szövegen is jó az index a kiemeléshez */
+const normKer = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/* egy sor pontszáma a már normalizált keresésre; 0 = nincs találat.
+   A cím többet ér az alcímnél, és minden beírt szónak szerepelnie kell valahol. */
+function keresPont(t, q){
+  if(!q) return 0;
+  const cim = normKer(t.title || ""), alcim = normKer(t.sub || ""), egyben = cim + " " + alcim;
+  const szavak = q.split(/\s+/).filter(Boolean);
+  if(!szavak.length || !szavak.every(w => egyben.includes(w))) return 0;
+  let p = 0;
+  if(cim === q) p += 100;                              /* pontos cím */
+  else if(cim.startsWith(q)) p += 70;                  /* a cím elejére illeszkedik */
+  else if((" " + cim).includes(" " + q)) p += 50;      /* egy szó elejére illeszkedik */
+  else if(cim.includes(q)) p += 30;                    /* bárhol a címben */
+  if(alcim.startsWith(q)) p += 12;
+  else if(alcim.includes(q)) p += 6;
+  szavak.forEach(w => { if(cim.includes(w)) p += 8; if(alcim.includes(w)) p += 3; });
+  /* egyenlő pontszámnál a lista sorrendje dönt (a sort stabil), vagyis amit a listában is előbb látsz */
+  return p;
+}
+
+/* a kapott sorokból a találatok, csökkenő pontszám szerint; üres keresésre null */
+const keresTalalatok = (sorok, nyers) => {
+  const q = normKer(nyers || "").trim();
+  if(!q) return null;
+  return (sorok || []).map(t => ({ t: t, p: keresPont(t, q) }))
+    .filter(x => x.p > 0).sort((a, b) => b.p - a.p).map(x => x.t);
+};
+
 /* egy szakasz összes fogalma (sec), vagy k véletlen fogalom az egész modulból (sec = null) */
 const writtenFrom = (list, sec, k) => () => {
   const pool = list.filter(x => !sec || x.s === sec);
@@ -8733,11 +8795,13 @@ function renderSubjects(){
 function openSubject(s){
   cur.subject = s;
   cur.folder = null;
+  torolKereses();
   renderTopics();
   show("topics");
 }
 function openFolder(f){
   cur.folder = f;
+  torolKereses();
   renderTopics();
   show("topics");
 }
@@ -8774,6 +8838,17 @@ function folderButton(f){
   return b;
 }
 
+/* egy sor megnyitása a típusa szerint — a lista és a kereső is ezt hívja */
+function openTopic(t){
+  if(t.folder)  return openFolder(t);
+  if(t.lesson)  return openLesson(t);
+  if(t.bits)    return startBits(t);
+  if(t.written) return startWritten(t);
+  if(t.free)    return startFree(t);
+  if(t.essay)   return startEssay(t);
+  startQuiz(t);
+}
+
 function topicButton(t){
   if(t.folder) return folderButton(t);
   const b = document.createElement("button");
@@ -8800,7 +8875,7 @@ function topicButton(t){
     sc.appendChild(l);
   }
   b.append(left, sc);
-  b.addEventListener("click", () => t.lesson ? openLesson(t) : t.bits ? startBits(t) : t.written ? startWritten(t) : t.free ? startFree(t) : t.essay ? startEssay(t) : startQuiz(t));
+  b.addEventListener("click", () => openTopic(t));
   return b;
 }
 
@@ -8857,6 +8932,74 @@ function renderTopics(){
     cur.subject.topics.forEach(t => wrap.appendChild(topicButton(t)));
   }
 }
+
+/* ================= KERESŐ (nézet) ================= */
+/* mindig azt szűri, ami épp látszik: a tantárgy listáját vagy a nyitott mappa tartalmát */
+let keresTalalat = null;
+const keresSorok = () => cur.folder ? cur.folder.children : (cur.subject ? cur.subject.topics : []);
+
+/* a beírt rész aláhúzva a címben (a normKer hossztartó, ezért jó az index az eredetin is) */
+function keresJelol(szoveg, nyers){
+  const frag = document.createDocumentFragment();
+  const q = normKer(nyers || "").trim();
+  const i = q ? normKer(szoveg).indexOf(q) : -1;
+  if(i < 0){ frag.appendChild(document.createTextNode(szoveg)); return frag; }
+  const m = document.createElement("mark");
+  m.textContent = szoveg.slice(i, i + q.length);
+  frag.append(document.createTextNode(szoveg.slice(0, i)), m, document.createTextNode(szoveg.slice(i + q.length)));
+  return frag;
+}
+
+function keresJavaslat(t, nyers){
+  const b = $("t-hit");
+  b.textContent = "";
+  const lead = document.createElement("span"); lead.className = "s-lead";
+  lead.textContent = "Legjobb találat · Enter megnyitja";
+  const cim = document.createElement("span"); cim.className = "s-title";
+  cim.appendChild(keresJelol(t.title, nyers));
+  const alcim = document.createElement("span"); alcim.className = "s-sub"; alcim.textContent = t.sub || "";
+  b.append(lead, cim, alcim);
+  b.classList.remove("hidden");
+}
+
+function futKereses(){
+  const nyers = $("t-search").value, tal = keresTalalatok(keresSorok(), nyers);
+  $("t-clear").classList.toggle("hidden", !nyers);
+  keresTalalat = tal && tal.length ? tal[0] : null;
+  if(!tal){                                   /* üres mező: minden a helyén */
+    $("t-hit").classList.add("hidden");
+    $("t-empty").classList.add("hidden");
+    renderTopics();
+    return;
+  }
+  const wrap = $("topic-list");
+  wrap.textContent = "";
+  tal.forEach(t => wrap.appendChild(topicButton(t)));   /* szűrve csoportcímek nélkül */
+  $("t-empty").classList.toggle("hidden", tal.length > 0);
+  if(tal.length) keresJavaslat(tal[0], nyers); else $("t-hit").classList.add("hidden");
+}
+
+/* a mező ürítése — a listát a hívó rajzolja újra */
+function torolKereses(){
+  const el = $("t-search");
+  if(el) el.value = "";
+  keresTalalat = null;
+  $("t-hit").classList.add("hidden");
+  $("t-empty").classList.add("hidden");
+  $("t-clear").classList.add("hidden");
+}
+
+$("t-search").addEventListener("input", futKereses);
+$("t-search").addEventListener("keydown", e => {
+  if(e.key === "Enter" && keresTalalat){ e.preventDefault(); openTopic(keresTalalat); }
+  else if(e.key === "Escape"){ e.preventDefault(); torolKereses(); renderTopics(); }
+  else if(e.key === "ArrowDown"){
+    const elso = $("topic-list").querySelector(".topic");
+    if(elso){ e.preventDefault(); elso.focus(); }
+  }
+});
+$("t-hit").addEventListener("click", () => { if(keresTalalat) openTopic(keresTalalat); });
+$("t-clear").addEventListener("click", () => { torolKereses(); renderTopics(); $("t-search").focus(); });
 
 const key = t => cur.subject.id + "." + t.id;
 
@@ -9591,8 +9734,8 @@ document.querySelectorAll("[data-back]").forEach(b =>
   b.addEventListener("click", () => {
     const target = b.dataset.back;
     eStopTimer();
-    if(target === "topics"){ renderTopics(); show("topics"); }
-    else if(cur.folder){ cur.folder = null; renderTopics(); window.scrollTo(0, 0); }
+    if(target === "topics"){ torolKereses(); renderTopics(); show("topics"); }
+    else if(cur.folder){ cur.folder = null; torolKereses(); renderTopics(); window.scrollTo(0, 0); }
     else show("subjects");
   })
 );

@@ -1083,7 +1083,8 @@ function svgTorque(o){
   /* forgásirányok jelölése, ahogy a füzetben */
   if(o.signs) out += txt(34, 44, "+", "fig-ang") + txt(266, 44, "−", "fig-ang");
   if(o.note) out += txt(150, 182, o.note, "fig-side");
-  return `<svg viewBox="0 0 300 200" role="img" aria-label="Emelő forgástengellyel és erőkkel">${out}</svg>`;
+  const mag = o.note ? 200 : (o.arms || []).some(a => a.below) ? 165 : 140;
+  return `<svg viewBox="0 0 300 ${mag}" role="img" aria-label="Emelő forgástengellyel és erőkkel">${out}</svg>`;
 }
 
 /* ferde erő a rúdon, ahogy a füzetben: a nyíl ferdén érkezik a támadáspontba (hegye a rúdon),
@@ -1126,7 +1127,7 @@ function svgLever(o){
     out += txt(150, y + 26, "alátámasztás: ?", "fig-ang");
   }
   if(o.note) out += txt(150, 182, o.note, "fig-side");
-  return `<svg viewBox="0 0 300 200" role="img" aria-label="Rúd két teherrel és alátámasztással">${out}</svg>`;
+  return `<svg viewBox="0 0 300 ${o.note ? 200 : 150}" role="img" aria-label="Rúd két teherrel és alátámasztással">${out}</svg>`;
 }
 
 /* ---------- parabola: y = (x − u)² + v, koordinátarendszerrel ---------- */
@@ -2740,7 +2741,7 @@ const mixTricks = () => shuffled(
 const work = (head, rows, result) =>
   '<div class="work"><div class="work-head">' + head + '</div>'
   + rows.map(([m, n]) => '<span class="w-math">' + m + '</span><span class="w-note">' + (n || "") + '</span>').join("")
-  + '<span class="w-math sum">= ' + result + '</span><span class="w-note sum"></span></div>';
+  + '<span class="w-math sum">' + (/^\S+ = /.test(result) ? '' : '= ') + result + '</span><span class="w-note sum"></span></div>';
 
 const LESSON_11 = `
 <p class="lead">Kétjegyű számnál a két szélső jegy marad, <b>középre a két jegy összege</b> kerül.</p>
@@ -3593,8 +3594,8 @@ M₁ + (−M₂) = 0
 <p>Egy mérleghinta egyik végére, a középtől 1,5 m-re, egy 30 kg tömegű gyerek ül. Hova üljön a 45 kg tömegű testvére, hogy egyensúly legyen?</p>
 <div class="works">
 ${work("m₁ = 30 kg, m₂ = 45 kg, k₁ = 1,5 m", [
-  ["F₁ = m₁ · g = 30 · 10 = <i>300 N</i>", "tömegből erő: F = m · g"],
-  ["F₂ = m₂ · g = 45 · 10 = <i>450 N</i>", "g = 10 m/s²"],
+  ["F₁ = 30 · 10 = <i>300 N</i>", "tömegből erő: F = m · g"],
+  ["F₂ = 45 · 10 = <i>450 N</i>", "g = 10 m/s²"],
   ["F₁ · k₁ = F₂ · k₂", "forgási egyensúly"],
   ["300 · 1,5 = 450 · k₂", ""],
   ["450 = 450 · k₂", ""]
@@ -3604,7 +3605,7 @@ ${work("m₁ = 30 kg, m₂ = 45 kg, k₁ = 1,5 m", [
 
 <h2>5. Ha az erő nem merőleges a rúdra</h2>
 <p>Ha az erő <b>ferdén</b> hat a rúdra, kisebbet forgat — a képletbe bekerül a <b>sin α</b>:</p>
-<div class="figure">${svgTorque({ span:2, forces:[{ x:-1.6, label:"F", kind:"g", ang:35 }], arms:[{ x:-1.6, label:"k" }] })}<span class="cap">α: az erő és a rúd szöge · k: a tengely és az erő távolsága</span></div>
+<div class="figure">${svgTorque({ span:2, forces:[{ x:-1.6, label:"F", kind:"g", ang:35 }], arms:[{ x:-1.6, label:"k" }] })}<span class="cap">a szög az erő és a rúd között · k: a tengely és az erő távolsága</span></div>
 <div class="column"><b>M = F · k · sin α</b></div>
 <ul>
   <li><span class="m">k</span> = a forgástengely és az erő <b>támadáspontjának</b> távolsága (méterben)</li>
@@ -3634,9 +3635,11 @@ x · (F₁ + F₂) = F₂ · L
 <p>A számlálóban a <b>másik</b> oldal ereje áll. Mivel <span class="m">F = m · g</span>, a g kiesik: <span class="m">x = m₂ · L / (m₁ + m₂)</span>. A rúd saját súlyát elhanyagoljuk.</p>
 <div class="works">
 ${work("m₁ = 2 kg,  m₂ = 5 kg,  L = 1,4 m", [
-  ["F₁ = 2 · 10 = <i>20 N</i>,  F₂ = 5 · 10 = <i>50 N</i>", "tömegből erő"],
+  ["F₁ = 2 · 10 = <i>20 N</i>", "tömegből erő"],
+  ["F₂ = 5 · 10 = <i>50 N</i>", ""],
   ["x = F₂ · L / (F₁ + F₂)", "x: a 2 kg-os végtől"],
-  ["x = 50 · 1,4 / (20 + 50) = 70 / 70", ""]
+  ["x = 50 · 1,4 / 70", ""],
+  ["x = 70 / 70", ""]
 ], "x = 1 m")}
 </div>
 <p>A másik kar <span class="m">L − x = 0,4 m</span>. Ellenőrzés: <span class="m">20 · 1 = 50 · 0,4 = 20 Nm</span> ✓</p>
@@ -7732,7 +7735,8 @@ const SUBJECTS = [
         title: "Ferde erő — M = F · k · sin α",
         sub: "ha az erő nem merőleges a rúdra: a szög szinuszával szorzunk",
         questions: [
-          { q:"Mit jelöl az α az M = F · k · sin α képletben?",
+          { q:"Mit jelöl az α a képletben?",
+            given:"M = F · k · sin α",
             fig:{ type:"torque", span:2, forces:[{ x:-1.5, label:"F", kind:"g", ang:30 }], arms:[{ x:-1.5, label:"k" }], cap:"a támadáspontnál a rúd és az erő szöge" },
             options:["Az erő és a rúd által bezárt szöget", "Az erő és a függőleges szögét", "A rúd dőlésszögét a talajhoz képest", "Azt, hogy hány fokot fordul el a rúd"],
             correct:0,
@@ -7811,7 +7815,8 @@ const SUBJECTS = [
             options:["F₁ · x = F₂ · (L − x)", "F₁ · (L − x) = F₂ · x", "F₁ · x = F₂ · x", "F₁ + F₂ = L"],
             correct:0,
             explain:"Forgási egyensúly: F₁ · k₁ = F₂ · k₂. Az F₁ karja x (az ő végétől mérünk), az F₂-é a maradék: L − x." },
-          { q:"Mi lesz az F₁ · x = F₂ · (L − x) egyenletből x-re rendezve?",
+          { q:"Mi lesz ebből az egyenletből x-re rendezve?",
+            given:"F₁ · x = F₂ · (L − x)",
             options:["x = F₂ · L / (F₁ + F₂)", "x = F₁ · L / (F₁ + F₂)", "x = (F₁ + F₂) / (F₂ · L)", "x = F₂ · L / (F₂ − F₁)"],
             correct:0,
             explain:"Zárójelbontás: F₁x = F₂L − F₂x. Átvisszük: F₁x + F₂x = F₂L. Kiemelés: x(F₁ + F₂) = F₂L. Osztás: x = F₂ · L / (F₁ + F₂). A számlálóban a másik oldal ereje áll." },

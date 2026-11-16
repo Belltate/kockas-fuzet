@@ -567,6 +567,8 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
 .ref-pelda{display:block;font-family:"JetBrains Mono",monospace;font-size:.8rem;line-height:1.5;white-space:pre-wrap;
   overflow-wrap:anywhere;background:var(--accent-soft);color:var(--ink);border-radius:var(--radius);padding:.45rem .65rem;margin:.35rem 0 .2rem}
 .ref-dates b{white-space:normal;overflow-wrap:anywhere}
+.column.ref-vaz{white-space:pre-wrap;overflow-wrap:anywhere;display:block}
+.ph{font-style:italic;color:var(--accent-ink);text-decoration:underline dashed;text-decoration-thickness:1px;text-underline-offset:.2em}
 .ref-dates span{margin-bottom:.35rem}
 /* ---------- kereső a tananyaglistán ---------- */
 .search{display:flex;align-items:center;gap:.4rem;margin:0 0 .75rem 0;
@@ -929,7 +931,7 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
     <button class="back" data-back="topics">← Tananyagok</button>
     <p class="eyebrow" id="r-eyebrow"></p>
     <h1>Parancskereső</h1>
-    <p class="tagline">Írd be a parancs nevét (pl. <b>b</b> vagy <b>&lt;img&gt;</b>), vagy azt, hogy mit csinál (pl. <b>félkövér</b>, <b>háttérszín</b>). Kattints egy sorra a bővebb leírásért és a példáért.</p>
+    <p class="tagline">Írd be a parancs nevét (pl. <b>b</b> vagy <b>&lt;img&gt;</b>), vagy azt, hogy mit csinál (pl. <b>félkövér</b>, <b>háttérszín</b>). Kattints egy sorra a bővebb leírásért és a példáért — a példában a <span class="ph">dőlt, aláhúzott</span> rész helyére írod a sajátodat.</p>
     <div class="search">
       <input id="r-search" class="s-input" type="search" enterkeyhint="search" autocomplete="off"
              autocapitalize="off" spellcheck="false" aria-label="Keresés a parancsok közt"
@@ -3843,15 +3845,15 @@ const WEB_PARANCSOK = [
   { nev:"<html>", csop:"vaz", tipus:"HTML-elem",
     rovid:"az egész oldalt közrefogó gyökérelem — minden más ezen belül van",
     bovebb:"Páros tag, a fájl végén zárul (</html>). Két része van: a <head> (beállítások) és a <body> (a látható tartalom).",
-    pelda:"<html lang=\"hu\">\n  <head> … </head>\n  <body> … </body>\n</html>", kulcs:["gyökér", "keret", "oldal"] },
+    pelda:"<html lang=\"hu\">\n  <head> «beállítások» </head>\n  <body> «az oldal tartalma» </body>\n</html>", kulcs:["gyökér", "keret", "oldal"] },
   { nev:"lang", csop:"vaz", tipus:"attribútum",
     rovid:"az oldal nyelve; lang=\"hu\" = magyar",
     bovebb:"A <html> tagba írjuk. A böngésző és a felolvasóprogram ebből tudja, milyen nyelvű a szöveg (elválasztás, kiejtés, fordítás felajánlása).",
-    pelda:"<html lang=\"hu\">", kulcs:["nyelv", "magyar", "language", "hu"] },
+    pelda:"<html lang=\"«a nyelv kódja, pl. hu»\">", kulcs:["nyelv", "magyar", "language", "hu"] },
   { nev:"<head>", csop:"vaz", tipus:"HTML-elem",
     rovid:"a fejrész: az oldal beállításai (kódolás, cím, stílus) — az oldalon nem látszik",
     bovebb:"Páros tag a <html> elején. Ide kerül a <meta>, a <title> és a <style>. Ami itt van, az nem jelenik meg a lap tartalmában.",
-    pelda:"<head>\n  <meta charset=\"UTF-8\">\n  <title>Római limes</title>\n</head>", kulcs:["fejrész", "fej", "beállítások"] },
+    pelda:"<head>\n  «meta, title, style»\n</head>", kulcs:["fejrész", "fej", "beállítások"] },
   { nev:"<meta>", csop:"vaz", tipus:"HTML-elem",
     rovid:"kiegészítő adat az oldalról a böngészőnek (karakterkódolás, mobilos megjelenítés)",
     bovebb:"Páratlan tag (nincs </meta>), a <head>-be kerül. Az attribútumai mondják meg, mit állít: charset (kódolás) vagy name + content (pl. viewport).",
@@ -3867,139 +3869,139 @@ const WEB_PARANCSOK = [
   { nev:"<title>", csop:"vaz", tipus:"HTML-elem",
     rovid:"a böngésző fülén (keretén) megjelenő cím",
     bovebb:"Páros tag a <head>-ben. Nem a lapon látszik, hanem a böngészőfülön és a könyvjelzőben; a keresők is ezt mutatják találatként.",
-    pelda:"<title>Római Limes Magyarországon</title>", kulcs:["cím", "fül", "böngésző keret", "lapfül"] },
+    pelda:"<title>«Az ablak címe»</title>", kulcs:["cím", "fül", "böngésző keret", "lapfül"] },
   { nev:"<style>", csop:"vaz", tipus:"HTML-elem",
     rovid:"a CSS-formázások helye a fejrészben",
     bovebb:"Páros tag a <head>-ben; a kettő közé CSS-szabályokat írunk (szelektor { tulajdonság: érték; }). Így egy helyen formázható az egész oldal.",
-    pelda:"<style>\n  body {\n    background-color: #CC9933;\n  }\n</style>", kulcs:["css", "stílus", "formázás"] },
+    pelda:"<style>\n  «szelektor» {\n    «tulajdonság»: «érték»;\n  }\n</style>", kulcs:["css", "stílus", "formázás"] },
   { nev:"<body>", csop:"vaz", tipus:"HTML-elem",
     rovid:"a törzs: minden, ami az oldalon látszik",
     bovebb:"Páros tag a <head> után. A szövegek, képek, táblázatok, hivatkozások mind ide kerülnek. CSS-ben a body-ra adott háttérszín az egész lap háttere.",
-    pelda:"<body>\n  <table> … </table>\n</body>", kulcs:["törzs", "tartalom", "látható"] },
+    pelda:"<body>\n  «minden, ami az oldalon látszik»\n</body>", kulcs:["törzs", "tartalom", "látható"] },
   { nev:"<h1>", csop:"szoveg", tipus:"HTML-elem",
     rovid:"első szintű (legnagyobb) címsor — a „címsor1” stílus",
     bovebb:"Páros tag. Hat szint van: <h1> … <h6>, a h1 a legnagyobb és legfontosabb. Alapból félkövér, nagy betűs, előtte-utána térközzel. A feladatsorokban a „címsor1 stílus” ezt jelenti.",
-    pelda:"<h1>Római limes Magyarországon</h1>", kulcs:["címsor", "cím", "heading", "címsor1", "főcím"] },
+    pelda:"<h1>«A címsor szövege»</h1>", kulcs:["címsor", "cím", "heading", "címsor1", "főcím"] },
   { nev:"<p>", csop:"szoveg", tipus:"HTML-elem",
     rovid:"bekezdés: egy szövegtömb, előtte-utána térközzel",
     bovebb:"Páros tag. A böngésző a forrásban lévő sortöréseket és több szóközt egynek veszi — új bekezdéshez új <p> kell, soron belüli új sorhoz <br>.",
-    pelda:"<p>A mai Dunántúl területe …</p>", kulcs:["bekezdés", "paragraph", "szöveg"] },
+    pelda:"<p>«A bekezdés szövege»</p>", kulcs:["bekezdés", "paragraph", "szöveg"] },
   { nev:"<br>", csop:"szoveg", tipus:"HTML-elem",
     rovid:"sortörés: új sorba viszi a szöveget (nincs záró tagja)",
-    bovebb:"Páratlan tag, nincs </br>. Bekezdésen belül tör sort, új bekezdést nem kezd — ezért jó egymás alatti sorokhoz (pl. településnevek).",
-    pelda:"AD FLEXUM, Mosonmagyaróvár <br>\nARRABONA, Győr <br>", kulcs:["új sor", "sortörés", "enter", "line break"] },
+    bovebb:"Páratlan tag, nincs </br>. Bekezdésen belül tör sort, új bekezdést nem kezd — ezért jó egymás alatti sorokhoz (pl. egy címlista sorai).",
+    pelda:"«első sor» <br>\n«második sor»", kulcs:["új sor", "sortörés", "enter", "line break"] },
   { nev:"<i>", csop:"szoveg", tipus:"HTML-elem",
     rovid:"dőlt betűvel jeleníti meg a közé írt szöveget",
     bovebb:"Páros tag: <i>…</i>. Több sort is közrefoghat (a <br>-ekkel együtt). CSS-ben ugyanez: font-style: italic;",
-    pelda:"<i>AQUINCUM, Budapest</i>", kulcs:["dőlt", "italic", "ferde"] },
+    pelda:"<i>«dőlt szöveg»</i>", kulcs:["dőlt", "italic", "ferde"] },
   { nev:"<b>", csop:"szoveg", tipus:"HTML-elem",
     rovid:"félkövér (vastag) betűvel jeleníti meg a közé írt szöveget",
     bovebb:"Páros tag: <b>…</b>. Csak a kinézetet változtatja. CSS-ben ugyanez: font-weight: bold;",
-    pelda:"<p><b>ULCISIA CASTRA - Szentendre</b></p>", kulcs:["vastag", "bold", "kiemel"] },
+    pelda:"<b>«félkövér szöveg»</b>", kulcs:["vastag", "bold", "kiemel"] },
   { nev:"<img>", csop:"kep", tipus:"HTML-elem",
     rovid:"kép beillesztése az oldalba",
     bovebb:"Páratlan tag (nincs </img>). Kell hozzá a src (a kép fájlja) és az alt (helyettesítő szöveg). A kép alapból a szöveggel egy sorban áll; külön sorba és középre CSS-sel kerül: display: block; margin: auto;",
-    pelda:"<img src=\"pannonia.jpg\" alt=\"Pannonia térképe\">", kulcs:["kép", "image", "fénykép", "beillesztés"] },
+    pelda:"<img src=\"«a kép fájlneve.jpg»\" alt=\"«mi van a képen»\">", kulcs:["kép", "image", "fénykép", "beillesztés"] },
   { nev:"src", csop:"kep", tipus:"attribútum",
     rovid:"a kép fájlneve vagy elérési útja — innen tölti be a képet",
-    bovebb:"Az <img> attribútuma. Ha a kép a HTML-fájllal egy mappában van, elég a fájlnév; ha almappában, akkor pl. kepek/pannonia.jpg.",
-    pelda:"<img src=\"lugio.jpg\" alt=\"Lugio\">", kulcs:["forrás", "fájlnév", "source", "elérési út"] },
+    bovebb:"Az <img> attribútuma. Ha a kép a HTML-fájllal egy mappában van, elég a fájlnév; ha almappában, akkor pl. kepek/kep.jpg.",
+    pelda:"src=\"«a kép fájlneve.jpg»\"", kulcs:["forrás", "fájlnév", "source", "elérési út"] },
   { nev:"alt", csop:"kep", tipus:"attribútum",
     rovid:"helyettesítő szöveg: akkor látszik, ha a kép nem töltődik be, és a felolvasóprogram ezt olvassa fel",
     bovebb:"Az <img> attribútuma. Röviden írja le, mi van a képen. Ha a kép csak díszítés, lehet üres is (alt=\"\"), de az attribútum ott legyen.",
-    pelda:"<img src=\"ulcisia.jpg\" alt=\"Ulcisia castra romjai\">", kulcs:["helyettesítő", "alternatív szöveg", "leírás"] },
+    pelda:"alt=\"«a kép rövid leírása»\"", kulcs:["helyettesítő", "alternatív szöveg", "leírás"] },
   { nev:"<a>", csop:"kep", tipus:"HTML-elem",
     rovid:"hivatkozás (link): rákattintva egy másik oldalra visz",
     bovebb:"Páros tag; ami <a> és </a> között van (szöveg vagy kép), arra lehet kattintani. A cél a href attribútumba kerül. Ha egy <img> van benne, a kép lesz kattintható.",
-    pelda:"<a href=\"https://lugio.hu/\" target=\"_blank\"><img src=\"lugio.jpg\" alt=\"Lugio\"></a>", kulcs:["link", "hivatkozás", "kattintható", "anchor"] },
+    pelda:"<a href=\"«webcím»\">«a kattintható szöveg vagy kép»</a>", kulcs:["link", "hivatkozás", "kattintható", "anchor"] },
   { nev:"href", csop:"kep", tipus:"attribútum",
     rovid:"a hivatkozás célja: a webcím, ahová a link visz",
-    bovebb:"Az <a> attribútuma. Teljes webcímnél a https:// is kell: href=\"https://lugio.hu/\". Saját fájlra mutatva elég a fájlnév: href=\"masik.html\".",
-    pelda:"<a href=\"https://hu.wikipedia.org/wiki/Ulcisia\">Ulcisia</a>", kulcs:["webcím", "url", "cél", "link címe"] },
+    bovebb:"Az <a> attribútuma. Teljes webcímnél a https:// is kell: href=\"https://pelda.hu/\". Saját fájlra mutatva elég a fájlnév: href=\"masik.html\".",
+    pelda:"href=\"«https://webcím.hu/»\"", kulcs:["webcím", "url", "cél", "link címe"] },
   { nev:"target", csop:"kep", tipus:"attribútum",
     rovid:"_blank értékkel a link új lapon (új fülön) nyílik meg",
     bovebb:"Az <a> attribútuma: target=\"_blank\". Nélküle a link ugyanabban a fülön nyílik meg, és az eredeti oldal eltűnik.",
-    pelda:"<a href=\"https://lugio.hu/\" target=\"_blank\">Lugio</a>", kulcs:["új lap", "új fül", "új ablak", "_blank"] },
+    pelda:"<a href=\"«webcím»\" target=\"_blank\">«szöveg»</a>", kulcs:["új lap", "új fül", "új ablak", "_blank"] },
   { nev:"<table>", csop:"tabla", tipus:"HTML-elem",
     rovid:"táblázat; sorokból (<tr>) és azokon belül cellákból (<td>) áll",
     bovebb:"Páros tag. A szélessége, szegélye és helye CSS-sel állítható: width: 650px; border: none; margin: auto; (középre).",
-    pelda:"<table>\n  <tr>\n    <td>…</td>\n  </tr>\n</table>", kulcs:["táblázat", "table", "oszlop"] },
+    pelda:"<table>\n  <tr>\n    <td>«a cella tartalma»</td>\n  </tr>\n</table>", kulcs:["táblázat", "table", "oszlop"] },
   { nev:"<tr>", csop:"tabla", tipus:"HTML-elem",
     rovid:"a táblázat egy sora (table row)",
     bovebb:"Páros tag a <table>-ön belül; benne vannak a sor cellái (<td>). Ahány <tr>, annyi sora van a táblázatnak.",
-    pelda:"<tr>\n  <td>első cella</td>\n  <td>második cella</td>\n</tr>", kulcs:["sor", "row", "táblázat sora"] },
+    pelda:"<tr>\n  <td>«1. cella»</td>\n  <td>«2. cella»</td>\n</tr>", kulcs:["sor", "row", "táblázat sora"] },
   { nev:"<td>", csop:"tabla", tipus:"HTML-elem",
     rovid:"a táblázat egy cellája (table data); a sorba (<tr>) kerül",
     bovebb:"Páros tag a <tr>-en belül. Bármi lehet benne: szöveg, kép, címsor, hivatkozás. Ahány <td> egy sorban, annyi oszlop.",
-    pelda:"<td><h1>Hivatkozások</h1></td>", kulcs:["cella", "oszlop", "adat"] },
+    pelda:"<td>«a cella tartalma»</td>", kulcs:["cella", "oszlop", "adat"] },
   { nev:"colspan", csop:"tabla", tipus:"attribútum",
     rovid:"cellák vízszintes összevonása: colspan=\"2\" = a cella két oszlopnyi széles",
     bovebb:"A <td> attribútuma. Ha az egyik sorban egy cella, a másikban kettő van, az egycellás sorokba colspan=\"2\" kell, különben a táblázat elcsúszik. Függőleges összevonás: rowspan.",
-    pelda:"<td colspan=\"2\"><h1>Limes települések:</h1></td>", kulcs:["összevonás", "egyesít", "cellaegyesítés", "két oszlop", "két cella"] },
+    pelda:"<td colspan=\"«hány oszlopnyi, pl. 2»\">«a cella tartalma»</td>", kulcs:["összevonás", "egyesít", "cellaegyesítés", "két oszlop", "két cella"] },
   { nev:"id", csop:"attr", tipus:"attribútum",
     rovid:"egyedi azonosító egy elemnek; a CSS-ben #névvel lehet rá hivatkozni",
-    bovebb:"Bármelyik tagba írható: <tr id=\"masodik\">. Egy oldalon minden id csak egyszer szerepelhet. Érdemes ékezet és szóköz nélkül elnevezni.",
-    pelda:"<tr id=\"masodik\"> … </tr>", kulcs:["azonosító", "egyedi", "név"] },
+    bovebb:"Bármelyik tagba írható: <p id=\"bevezeto\">. Egy oldalon minden id csak egyszer szerepelhet. Érdemes ékezet és szóköz nélkül elnevezni.",
+    pelda:"<«tag» id=\"«egyedi név»\">", kulcs:["azonosító", "egyedi", "név"] },
   { nev:"CSS-szabály", csop:"css-alap", tipus:"CSS",
     rovid:"a CSS-szabály felépítése: szelektor { tulajdonság: érték; }",
     bovebb:"A szelektor mondja meg, MIT formázunk; a kapcsos zárójelek közé jönnek a beállítások, mindegyik tulajdonság: érték; alakban, pontosvesszővel a végén. Egy szabályban több beállítás is lehet.",
-    pelda:"table {\n    width: 650px;\n    margin: auto;\n}", kulcs:["szabály", "felépítés", "kapcsos zárójel", "pontosvessző", "szintaxis"] },
+    pelda:"«szelektor» {\n    «tulajdonság»: «érték»;\n}", kulcs:["szabály", "felépítés", "kapcsos zárójel", "pontosvessző", "szintaxis"] },
   { nev:"elem-szelektor", csop:"css-alap", tipus:"CSS-szelektor",
     rovid:"egy tag nevével az oldal összes ilyen elemét formázza (pl. body, table, a)",
     bovebb:"Nincs előtte jel, csak a tag neve. Az a { color: white; } például az összes hivatkozás színét fehérre állítja.",
-    pelda:"a {\n    color: white;\n}", kulcs:["tag", "összes", "típus", "selector"] },
+    pelda:"«a tag neve» {\n    «tulajdonság»: «érték»;\n}", kulcs:["tag", "összes", "típus", "selector"] },
   { nev:"#id-szelektor", csop:"css-alap", tipus:"CSS-szelektor",
     rovid:"a # után írt azonosítójú elemet formázza (csak azt az egyet)",
-    bovebb:"A HTML-ben id=\"masodik\", a CSS-ben #masodik. Így egyetlen sort, cellát vagy képet lehet külön formázni.",
-    pelda:"#masodik {\n    text-align: justify;\n}", kulcs:["kettőskereszt", "hashtag", "azonosító", "egy elem"] },
+    bovebb:"A HTML-ben id=\"bevezeto\", a CSS-ben #bevezeto. Így egyetlen sort, cellát vagy képet lehet külön formázni.",
+    pelda:"#«az id neve» {\n    «tulajdonság»: «érték»;\n}", kulcs:["kettőskereszt", "hashtag", "azonosító", "egy elem"] },
   { nev:"tr td", csop:"css-alap", tipus:"CSS-szelektor",
     rovid:"leszármazott-szelektor: szóközzel elválasztva a tr-en belüli td-ket formázza",
     bovebb:"Az első elemen belül lévő második elemre vonatkozik: tr td = minden cella, amely egy soron belül van. Táblázatban ugyanaz, mintha csak td-t írnánk.",
-    pelda:"tr td {\n    background-color: #CC9966;\n}", kulcs:["szóköz", "belül", "leszármazott", "beágyazott"] },
+    pelda:"«külső elem» «belső elem» {\n    «tulajdonság»: «érték»;\n}", kulcs:["szóköz", "belül", "leszármazott", "beágyazott"] },
   { nev:"background-color", csop:"css-tul", tipus:"CSS-tulajdonság",
     rovid:"háttérszín beállítása",
-    bovebb:"Értéke színkód vagy színnév: background-color: #CC9933;. A body-ra adva az egész lap, a td-re adva a cellák háttere.",
-    pelda:"body {\n    background-color: #CC9933;\n}", kulcs:["háttér", "háttérszín", "szín", "background"] },
+    bovebb:"Értéke színkód vagy színnév: background-color: #FFCC99;. A body-ra adva az egész lap, a td-re adva a cellák háttere.",
+    pelda:"background-color: «színkód vagy színnév»;", kulcs:["háttér", "háttérszín", "szín", "background"] },
   { nev:"color", csop:"css-tul", tipus:"CSS-tulajdonság",
     rovid:"a betűk (szöveg) színe",
     bovebb:"color: white;. A hivatkozások alapból kékek (meglátogatva lilák); az a { color: … } szabály mindegyik állapotukban átszínezi őket.",
-    pelda:"a {\n    color: white;\n}", kulcs:["betűszín", "szövegszín", "link színe", "szín"] },
+    pelda:"color: «színkód vagy színnév»;", kulcs:["betűszín", "szövegszín", "link színe", "szín"] },
   { nev:"width", csop:"css-tul", tipus:"CSS-tulajdonság",
     rovid:"szélesség, pl. 650px",
     bovebb:"Mértékegységgel: width: 650px; (képpont) vagy width: 50%; (a szülő szélességének fele).",
-    pelda:"table {\n    width: 650px;\n}", kulcs:["szélesség", "széles", "méret"] },
+    pelda:"width: «szélesség, pl. 300px»;", kulcs:["szélesség", "széles", "méret"] },
   { nev:"border", csop:"css-tul", tipus:"CSS-tulajdonság",
     rovid:"szegély: vastagság, vonaltípus, szín egy sorban (pl. 2px solid black); none = nincs szegély",
     bovebb:"Három része: vastagság (2px), vonaltípus (solid = folytonos, dashed = szaggatott, dotted = pontozott), szín (black). border: none; = szegély nélküli.",
-    pelda:"#kep {\n    border: 2px solid black;\n}", kulcs:["szegély", "keret", "vonal", "solid", "none", "körvonal"] },
+    pelda:"border: «vastagság» «vonaltípus» «szín»;\nborder: none;", kulcs:["szegély", "keret", "vonal", "solid", "none", "körvonal"] },
   { nev:"text-align", csop:"css-tul", tipus:"CSS-tulajdonság",
     rovid:"vízszintes igazítás: left (balra), center (középre), right (jobbra), justify (sorkizárt)",
     bovebb:"A szöveget és a soron belüli elemeket (pl. kép) igazítja a dobozukon belül. Sorkizárt (justify) szövegnél a sorok mindkét széle egyenes.",
-    pelda:"#masodik {\n    text-align: justify;\n}", kulcs:["igazítás", "vízszintes", "középre zárt", "sorkizárt", "justify", "center"] },
+    pelda:"text-align: «left / center / right / justify»;", kulcs:["igazítás", "vízszintes", "középre zárt", "sorkizárt", "justify", "center"] },
   { nev:"vertical-align", csop:"css-tul", tipus:"CSS-tulajdonság",
     rovid:"függőleges igazítás a cellában: top (fent), middle (középen), bottom (lent)",
     bovebb:"Táblázatcellában a tartalom függőleges helyét adja meg. Ha vízszintesen és függőlegesen is középre kell: text-align: center; és vertical-align: middle;",
-    pelda:"#otodik {\n    text-align: center;\n    vertical-align: middle;\n}", kulcs:["függőleges", "igazítás", "middle"] },
+    pelda:"vertical-align: «top / middle / bottom»;", kulcs:["függőleges", "igazítás", "middle"] },
   { nev:"margin", csop:"css-tul", tipus:"CSS-tulajdonság",
     rovid:"külső margó (térköz) az elem körül; margin: auto = vízszintesen középre teszi",
     bovebb:"Blokkelemnél (táblázat, display: block kép) a margin: auto; a bal és a jobb oldalt egyformán osztja el, így az elem középre kerül. Számmal térköz: margin: 10px;",
-    pelda:"table {\n    margin: auto;\n}", kulcs:["margó", "térköz", "középre", "auto"] },
+    pelda:"margin: auto;\nmargin: «térköz, pl. 10px»;", kulcs:["margó", "térköz", "középre", "auto"] },
   { nev:"display", csop:"css-tul", tipus:"CSS-tulajdonság",
     rovid:"megjelenítési mód; block = az elem külön sorba kerül, saját dobozként",
     bovebb:"Az <img> alapból inline (a szöveggel egy sorban áll). display: block; után külön sorban van, és a margin: auto; középre tudja tenni.",
-    pelda:"#kep {\n    display: block;\n    margin: auto;\n}", kulcs:["block", "blokk", "inline", "külön sor"] },
+    pelda:"display: block;", kulcs:["block", "blokk", "inline", "külön sor"] },
   { nev:"#hexa színkód", csop:"css-ert", tipus:"CSS-érték",
     rovid:"szín megadása # után 6 hexadecimális jeggyel: piros, zöld, kék (RR GG BB)",
-    bovebb:"Minden pár 00 és FF (0–255) között. #FFFFFF = fehér, #000000 = fekete, #CC9933 = világosbarna. Kis- és nagybetű mindegy.",
-    pelda:"background-color: #CC9966;", kulcs:["színkód", "hex", "rgb", "szín"] },
+    bovebb:"Minden pár 00 és FF (0–255) között. #FFFFFF = fehér, #000000 = fekete, #FF0000 = piros. Kis- és nagybetű mindegy.",
+    pelda:"«tulajdonság»: #«RRGGBB»;", kulcs:["színkód", "hex", "rgb", "szín"] },
   { nev:"színnév", csop:"css-ert", tipus:"CSS-érték",
     rovid:"angol névvel megadott szín: white (fehér), black (fekete), red …",
     bovebb:"A gyakori színekhez van név, ugyanaz, mint a kódjuk: white = #FFFFFF, black = #000000.",
-    pelda:"color: white;", kulcs:["white", "black", "fehér", "fekete", "szín"] },
+    pelda:"«tulajdonság»: «white / black / red …»;", kulcs:["white", "black", "fehér", "fekete", "szín"] },
   { nev:"px", csop:"css-ert", tipus:"CSS-érték",
     rovid:"képpont (pixel) — a méretek mértékegysége, pl. 650px, 2px",
     bovebb:"Szám és px közé nem kerül szóköz: 650px. A 0 mellé nem kell mértékegység.",
-    pelda:"width: 650px;", kulcs:["pixel", "képpont", "mértékegység"] }
+    pelda:"«tulajdonság»: «szám»px;", kulcs:["pixel", "képpont", "mértékegység"] }
 ];
 
 /* a név és a keresés összevetéséhez: kisbetű, ékezet nélkül, a < > / " jelek nélkül (b = <b> = </b>) */
@@ -4036,35 +4038,37 @@ const parancsTalalatok = nyers => {
   return WEB_PARANCSOK.map(c => parancsPont(c, q)).filter(Boolean).sort((a, b) => b.p - a.p);
 };
 
+/* a példákban «…» = ide a sajátodat írod; kiíráskor a jelek eltűnnek, a rész kiemelve látszik */
+const helyKit = html => html.replace(/«([^»]*)»/g, '<span class="ph">$1</span>');
 const escH = x => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const WEB_VAZ = `<!DOCTYPE html>
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Az oldal címe</title>
+    <title>«Az ablak címe»</title>
     <style>
-        body {
-            background-color: #CC9933;
+        «szelektor» {
+            «tulajdonság»: «érték»;
         }
     </style>
 </head>
 <body>
-    <h1>Címsor</h1>
-    <p>Bekezdés</p>
+    <h1>«Címsor»</h1>
+    <p>«Bekezdés»</p>
 </body>
 </html>`;
 /* a jegyzet a WEB_PARANCSOK-ból: csoportonként a parancs, egy sor leírás és egy példa */
 function webJegyzet(){
   let h = '<p class="lead">Minden HTML-tag, attribútum és CSS-beállítás, ami egy egyszerű, táblázatos weboldalhoz kell — csoportonként, egy sor leírással és példával. Ha egy parancsot keresel, a Parancskereső név és leírás alapján is megtalálja.</p>';
-  h += '<h2>Így épül fel egy weboldal</h2><div class="column">' + escH(WEB_VAZ) + '</div>';
-  h += '<div class="note"><p class="note-label">Páros és páratlan tag</p><p><b>Páros</b> tag: van nyitó és záró része, a tartalom közöttük van — <span class="m">&lt;p&gt; … &lt;/p&gt;</span>. <b>Páratlan</b> tag: nincs záró része — <span class="m">&lt;br&gt;</span>, <span class="m">&lt;img&gt;</span>, <span class="m">&lt;meta&gt;</span>. Az <b>attribútum</b> a nyitó tagba kerül: <span class="m">név="érték"</span>.</p></div>';
+  h += '<h2>Így épül fel egy weboldal</h2><div class="column ref-vaz">' + helyKit(escH(WEB_VAZ)) + '</div>';
+  h += '<div class="note"><p class="note-label">Páros és páratlan tag</p><p><b>Páros</b> tag: van nyitó és záró része, a tartalom közöttük van — <span class="m">&lt;p&gt; … &lt;/p&gt;</span>. <b>Páratlan</b> tag: nincs záró része — <span class="m">&lt;br&gt;</span>, <span class="m">&lt;img&gt;</span>, <span class="m">&lt;meta&gt;</span>. Az <b>attribútum</b> a nyitó tagba kerül: <span class="m">név="érték"</span>.</p><p>A példákban a <span class="ph">dőlt, aláhúzott</span> rész helyére írod a sajátodat — idézőjel csak ott kell, ahol a példában is van.</p></div>';
   WEB_CSOPORTOK.forEach(g => {
     const sor = WEB_PARANCSOK.filter(c => c.csop === g.id);
     if(!sor.length) return;
     h += '<h2>' + escH(g.cim) + '</h2><div class="dates ref-dates">';
     sor.forEach(c => {
-      h += '<b>' + escH(c.nev) + '</b><span>' + escH(c.rovid) + '<code class="ref-pelda">' + escH(c.pelda) + '</code></span>';
+      h += '<b>' + escH(c.nev) + '</b><span>' + escH(c.rovid) + '<code class="ref-pelda">' + helyKit(escH(c.pelda)) + '</code></span>';
     });
     h += '</div>';
   });
@@ -9767,7 +9771,7 @@ function refSor(x, q){
   const test = document.createElement("div"); test.className = "ref-body hidden";
   const bov = document.createElement("p"); bov.textContent = c.bovebb;
   const cim = document.createElement("span"); cim.className = "ref-cimke"; cim.textContent = "Példa";
-  const pel = document.createElement("code"); pel.className = "ref-pelda"; pel.textContent = c.pelda;
+  const pel = document.createElement("code"); pel.className = "ref-pelda"; pel.innerHTML = helyKit(escH(c.pelda));
   test.append(bov, cim, pel);
   fej.addEventListener("click", () => {
     const nyit = test.classList.contains("hidden");

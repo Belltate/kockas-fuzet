@@ -513,6 +513,41 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
   .work .sum{margin-top:.3rem}
   .column{font-size:.92rem;padding:.55rem .7rem}
 }
+/* ---------- frissítések fül (jobb oldalt) ---------- */
+.upd{position:fixed;z-index:20;right:1rem;bottom:1rem;display:flex;flex-direction:column-reverse;
+  align-items:flex-end;gap:.5rem;width:min(18rem, calc(100vw - 2rem))}
+.upd-btn{display:inline-flex;align-items:center;gap:.55rem;cursor:pointer;
+  font-family:"JetBrains Mono",monospace;font-size:.7rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink);background:var(--paper-raised);border:1px solid var(--rule);border-left:3px solid var(--accent);
+  border-radius:var(--radius);padding:.6rem .8rem;box-shadow:var(--shadow)}
+.upd-btn:hover,.upd-btn[aria-expanded="true"]{border-color:var(--accent)}
+/* a nyíl arra mutat, amerre a lista nyílik: keskeny kijelzőn fölfelé, széles kijelzőn lefelé */
+.upd-btn .upd-nyil{color:var(--ink-faint);transition:transform .14s ease;transform:rotate(180deg)}
+.upd-btn[aria-expanded="true"] .upd-nyil{transform:none}
+.upd-count{display:inline-grid;place-items:center;min-width:1.35rem;height:1.35rem;padding:0 .3rem;
+  border-radius:999px;background:var(--accent);color:#fff;font-size:.72rem;font-weight:700;letter-spacing:0}
+.upd-panel{width:100%;max-height:60vh;overflow:auto;background:var(--paper-raised);border:1px solid var(--rule);
+  border-radius:var(--radius);box-shadow:var(--shadow);padding:.35rem}
+.upd-head{font-family:"JetBrains Mono",monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-faint);padding:.45rem .55rem .35rem}
+.upd-item{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;background:none;
+  border:1px solid transparent;border-radius:var(--radius);padding:.55rem .6rem}
+.upd-item:hover,.upd-item:focus-visible{border-color:var(--accent);background:var(--accent-soft)}
+.upd-item + .upd-item{margin-top:.1rem}
+.upd-title{display:block;font-family:"Familjen Grotesk",sans-serif;font-weight:600;font-size:.98rem;line-height:1.3}
+.upd-meta{display:flex;align-items:center;flex-wrap:wrap;gap:.2rem .45rem;margin-top:.25rem;
+  font-family:"JetBrains Mono",monospace;font-size:.66rem;color:var(--ink-faint)}
+.upd-tag{font-size:.58rem;letter-spacing:.09em;text-transform:uppercase;padding:.08rem .35rem;border-radius:2px;border:1px solid}
+.upd-tag.uj{color:var(--correct);border-color:var(--correct);background:var(--correct-soft)}
+.upd-tag.bovult{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+.upd-empty{margin:0;padding:.3rem .55rem .6rem;font-size:.92rem;color:var(--ink-soft)}
+/* széles kijelzőn a füzetlap mellett, jobbra fent, lefelé nyílik */
+@media (min-width:1300px){
+  .upd{top:1.5rem;bottom:auto;right:1.5rem;flex-direction:column;width:18rem}
+  .upd-btn{width:100%;justify-content:space-between}
+  .upd-btn .upd-nyil{transform:none}
+  .upd-btn[aria-expanded="true"] .upd-nyil{transform:rotate(180deg)}
+}
 /* ---------- kereső a tananyaglistán ---------- */
 .search{display:flex;align-items:center;gap:.4rem;margin:0 0 .75rem 0;
   background:var(--paper-raised);border:1px solid var(--rule);border-radius:var(--radius);padding:0 .65rem}
@@ -889,6 +924,18 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
 
   <p class="sync" id="sync-note">A haladás csak ebben a nézetben látszik</p>
 </div>
+
+<aside class="upd" id="upd" aria-label="Frissítések">
+  <button class="upd-btn" id="upd-btn" type="button" aria-expanded="false" aria-controls="upd-panel">
+    <span>Frissítések</span>
+    <span class="upd-count hidden" id="upd-count"></span>
+    <span class="upd-nyil" aria-hidden="true">▾</span>
+  </button>
+  <div class="upd-panel hidden" id="upd-panel">
+    <div class="upd-head">Az elmúlt 2 nap</div>
+    <div id="upd-list"></div>
+  </div>
+</aside>
 
 <script>
 /* ================= ÁBRÁK ================= */
@@ -7943,6 +7990,53 @@ const SUBJECTS = [
   { id:"soon-more", name:"További tárgyak", meta:"Bővíthető", desc:"Irodalom, magyar, programozás — amit kérsz, azt vesszük fel.", soon:true }
 ];
 
+/* ================= FRISSÍTÉSEK (a jobb oldali fül) ================= */
+/* Minden tartalmi módosításnál új sor az ELEJÉRE: ido = helyi idő ("ÉÉÉÉ-HH-NN ÓÓ:PP"),
+   tipus = "uj" (új tananyag) | "bovult" (meglévő lecke/kvíz bővült). A címet a SUBJECTS adja. */
+const FRISSITESEK = [
+  { ido:"2026-11-16 18:12", tantargy:"fizika", id:"fiz-forg-lecke", tipus:"bovult" },
+  { ido:"2026-11-16 17:58", tantargy:"fizika", id:"fiz-forg-sin",   tipus:"uj" },
+  { ido:"2026-11-16 17:58", tantargy:"fizika", id:"fiz-forg-alat",  tipus:"uj" },
+  { ido:"2026-11-16 17:58", tantargy:"fizika", id:"fiz-forg-abra",  tipus:"bovult" }
+];
+const FRISS_ABLAK = 48 * 3600 * 1000;           /* „az elmúlt 2 nap” = 48 óra */
+
+/* "2026-11-16 18:12" → helyi idő szerinti Date (érvénytelenre null) */
+function frissIdo(str){
+  const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(str || "");
+  if(!m) return null;
+  const d = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]);
+  return d.getMonth() === m[2] - 1 && d.getDate() === +m[3] && d.getHours() === +m[4] ? d : null;
+}
+
+/* egy topic megkeresése: felső szinten vagy egy mappa children-jében (a mappát is visszaadja) */
+function frissKeres(tantargy, id){
+  const sub = SUBJECTS.find(x => x.id === tantargy && !x.soon);
+  if(!sub) return null;
+  for(const t of sub.topics || []){
+    if(t.id === id) return { sub, t, mappa:null };
+    if(t.folder) for(const c of t.children || []) if(c.id === id) return { sub, t:c, mappa:t };
+  }
+  return null;
+}
+
+/* az ablakba eső frissítések témánként egyszer (a legutóbbi idővel; ha bármelyik sora „uj”, akkor új),
+   a legújabb elöl */
+function frissLista(most){
+  const tal = new Map();
+  for(const f of FRISSITESEK){
+    const d = frissIdo(f.ido), hol = frissKeres(f.tantargy, f.id);
+    if(!d || !hol || d.getTime() > most || most - d.getTime() > FRISS_ABLAK) continue;
+    const k = f.tantargy + "." + f.id, volt = tal.get(k);
+    if(!volt) tal.set(k, Object.assign({ ido:d, tipus:f.tipus }, hol));
+    else {
+      if(d > volt.ido) volt.ido = d;
+      if(f.tipus === "uj") volt.tipus = "uj";
+    }
+  }
+  return [...tal.values()].sort((a, b) => b.ido - a.ido);
+}
+
 /* ================= SZABAD FELELET: TANANYAGOK (ez alapján javít Claude) ================= */
 /* id · label: a legördülő menüben · task: amit a diák lát · ref: a „mit kell tudni” pontok · extra: tárgyi szabály */
 const FREE = {
@@ -10141,6 +10235,69 @@ async function saveProgress(t, got, total){
 }
 
 /* ================= INDÍTÁS ================= */
+/* ================= FRISSÍTÉSEK FÜL ================= */
+const HU_NAP = d => {
+  const ma = new Date(); ma.setHours(0, 0, 0, 0);
+  const nap = new Date(d); nap.setHours(0, 0, 0, 0);
+  const elt = Math.round((ma - nap) / 86400000);
+  const ora = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+  return (elt === 0 ? "ma" : elt === 1 ? "tegnap" : "tegnapelőtt") + " " + ora;
+};
+
+function frissNyit(nyit){
+  $("upd-panel").classList.toggle("hidden", !nyit);
+  $("upd-btn").setAttribute("aria-expanded", nyit ? "true" : "false");
+}
+
+/* odaugrás a témához: a mappát is beállítja, hogy a „← Tananyagok” oda vigyen vissza */
+function ugrasTemara(x){
+  frissNyit(false);
+  eStopTimer();
+  openSubject(x.sub);
+  if(x.mappa){ cur.folder = x.mappa; renderTopics(); }
+  openTopic(x.t);
+}
+
+function renderFriss(most){
+  const lista = frissLista(most || Date.now());
+  const db = $("upd-count");
+  db.textContent = lista.length;
+  db.classList.toggle("hidden", !lista.length);
+  $("upd-btn").setAttribute("aria-label", "Frissítések" + (lista.length ? ": " + lista.length + " új vagy bővült tananyag" : ""));
+  const wrap = $("upd-list");
+  wrap.textContent = "";
+  if(!lista.length){
+    const p = document.createElement("p"); p.className = "upd-empty";
+    p.textContent = "Az elmúlt 2 napban nem került fel új anyag.";
+    wrap.appendChild(p);
+    return;
+  }
+  lista.forEach(x => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "upd-item";
+    const c = document.createElement("span"); c.className = "upd-title"; c.textContent = x.t.title;
+    const m = document.createElement("span"); m.className = "upd-meta";
+    const tag = document.createElement("span"); tag.className = "upd-tag " + x.tipus;
+    tag.textContent = x.tipus === "uj" ? "új" : "bővült";
+    const hol = document.createElement("span");
+    /* a cím mellé, hogy hova tartozik: a mappa neve, vagy a tantárgyon belüli csoport (pl. Forgatónyomaték) */
+    const csop = x.mappa ? x.mappa.title : ((x.sub.groups || []).find(g => g.kind === x.t.kind) || {}).label;
+    hol.textContent = x.sub.name + (csop ? " · " + csop : "") + " · " + HU_NAP(x.ido);
+    m.append(tag, hol);
+    b.append(c, m);
+    b.addEventListener("click", () => ugrasTemara(x));
+    wrap.appendChild(b);
+  });
+}
+
+$("upd-btn").addEventListener("click", e => {
+  e.stopPropagation();
+  frissNyit($("upd-panel").classList.contains("hidden"));
+});
+document.addEventListener("click", e => { if(!$("upd").contains(e.target)) frissNyit(false); });
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("upd-panel").classList.contains("hidden")) frissNyit(false); });
+renderFriss();
+setInterval(() => renderFriss(), 60000);     /* a lejárt bejegyzések nyitva hagyott oldalon is eltűnnek */
+
 renderSubjects();
 
 /* a böngészőben tárolt haladás azonnal betöltődik */

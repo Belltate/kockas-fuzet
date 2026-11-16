@@ -1058,11 +1058,11 @@ function svgTorque(o){
   let out = "";
   /* erőkarok a rúd fölött */
   (o.arms || []).forEach(a => {
-    const x = X(a.x), ay = 62;
+    const x = X(a.x), ay = a.below ? 142 : 62;
     out += `<line x1="150" y1="${ay}" x2="${x}" y2="${ay}" class="fig-thin"/>`
         +  `<line x1="150" y1="${ay - 5}" x2="150" y2="${ay + 5}" class="fig-thin"/>`
         +  `<line x1="${x}" y1="${ay - 5}" x2="${x}" y2="${ay + 5}" class="fig-thin"/>`
-        +  txt((150 + x) / 2, ay - 11, a.label, "fig-ang");
+        +  txt((150 + x) / 2, a.below ? ay + 13 : ay - 11, a.label, "fig-ang");
   });
   /* a rúd és a forgástengely */
   out += `<line x1="${X(-span)}" y1="${y}" x2="${X(span)}" y2="${y}" class="fig-bar"/>`;
@@ -1071,6 +1071,7 @@ function svgTorque(o){
   out += `<circle cx="150" cy="${y}" r="3.4" class="fig-pivot"/>`;
   /* erővektorok a rúdról */
   (o.forces || []).forEach(f => {
+    if(f.ang != null && f.ang < 90){ out += ferdeEro(X(f.x), y, f); return; }
     const x = X(f.x), len = (f.len || 1) * 34, up = f.dir === "up";
     const y2 = up ? y - len : y + len;
     /* a címke kifelé, a forgástengelytől elfelé, hogy ne fedje a háromszöget */
@@ -1082,6 +1083,60 @@ function svgTorque(o){
   if(o.signs) out += txt(34, 44, "+", "fig-ang") + txt(266, 44, "−", "fig-ang");
   if(o.note) out += txt(150, 182, o.note, "fig-side");
   return `<svg viewBox="0 0 300 200" role="img" aria-label="Emelő forgástengellyel és erőkkel">${out}</svg>`;
+}
+
+/* ferde erő a rúdon (rúd y-ján, x px-nél): a nyíl az α szögben kifelé-lefelé mutat,
+   a szaggatott hatásvonal visszafelé a tengelyig, és a tengelyből rá húzott merőleges = k */
+function ferdeEro(x, y, f){
+  const ki = x < 150 ? -1 : 1, a = f.ang * Math.PI / 180, len = (f.len || 1) * 58, kind = f.kind || "g";
+  const dx = ki * Math.cos(a), dy = Math.sin(a);
+  const x2 = x + dx * len, y2 = y + dy * len;
+  const t = (150 - x) * dx;                              /* a merőleges talppontja: Q = P + t·d */
+  const qx = x + t * dx, qy = y + t * dy;
+  let out = `<line x1="${(x + (t - 16) * dx).toFixed(1)}" y1="${(y + (t - 16) * dy).toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="fig-dash"/>`;
+  /* k: a tengelytől a hatásvonalig, derékszög-jellel */
+  const kl = Math.hypot(qx - 150, qy - y), ux = (qx - 150) / kl, uy = (qy - y) / kl, m = 7;
+  out += `<line x1="150" y1="${y}" x2="${qx.toFixed(1)}" y2="${qy.toFixed(1)}" stroke="var(--accent)" stroke-width="1.6"/>`;
+  out += `<path d="M ${(qx - ux * m).toFixed(1)} ${(qy - uy * m).toFixed(1)} L ${(qx - ux * m - dx * m).toFixed(1)} ${(qy - uy * m - dy * m).toFixed(1)} L ${(qx - dx * m).toFixed(1)} ${(qy - dy * m).toFixed(1)}" fill="none" stroke="var(--accent)" stroke-width="1.1"/>`;
+  /* a k felirat a szakasz közepétől a támadásponttal ellentétes oldalra */
+  let nx = -uy, ny = ux;
+  if(nx * (x - 150) + ny * 0 > 0){ nx = -nx; ny = -ny; }
+  out += txt((150 + qx) / 2 + nx * 11, (y + qy) / 2 + ny * 11, f.kLabel || "k", "fig-ang");
+  /* az α szög a rúd és az erő között */
+  const ar = angArc(x, y, [x + ki * 26, y], [x2, y2], 26);
+  out += `<path d="${ar.d}" fill="none" stroke="var(--accent)" stroke-width="1.3"/>` + txt(ar.mid[0], ar.mid[1], "α", "fig-ang");
+  out += vecArrow(x, y, x2, y2, kind) + txt(Math.max(10, Math.min(290, x2 + ki * 4)), y2 + 15, f.label, "fig-lbl " + kind);
+  return out;
+}
+
+/* ---------- rúd adott hosszal, két teherrel; az alátámasztás helye (o.pivot, méter a bal végtől) ---------- */
+/* o = { L, loads:[{at, label}], pivot, dims:[{a, b, label, row}], note } */
+function svgLever(o){
+  const L = o.L, unit = 224 / L, y = 104, X = s => +(38 + s * unit).toFixed(1);
+  let out = "";
+  (o.dims || []).forEach(d => {
+    const x1 = X(d.a), x2 = X(d.b), ay = d.row ? 30 : 58;
+    out += `<line x1="${x1}" y1="${ay}" x2="${x2}" y2="${ay}" class="fig-thin"/>`
+        +  `<line x1="${x1}" y1="${ay - 5}" x2="${x1}" y2="${ay + 5}" class="fig-thin"/>`
+        +  `<line x1="${x2}" y1="${ay - 5}" x2="${x2}" y2="${ay + 5}" class="fig-thin"/>`
+        +  txt((x1 + x2) / 2, ay - 10, d.label, "fig-ang");
+  });
+  out += `<line x1="${X(0)}" y1="${y}" x2="${X(L)}" y2="${y}" class="fig-bar"/>`;
+  (o.loads || []).forEach(l => {
+    const cx = X(l.at);
+    out += `<rect x="${(cx - 21).toFixed(1)}" y="${y - 27}" width="42" height="22" rx="2" class="fig-body"/>`
+        +  txt(cx, y - 16, l.label, "fig-side");
+  });
+  if(o.pivot != null){
+    const px = X(o.pivot);
+    out += `<polygon points="${px},${y + 2} ${px - 9},${y + 28} ${px + 9},${y + 28}" class="fig-pivot"/>`
+        +  `<line x1="${px - 22}" y1="${y + 28}" x2="${px + 22}" y2="${y + 28}" class="fig-ground"/>`
+        +  `<circle cx="${px}" cy="${y}" r="3.4" class="fig-pivot"/>`;
+  } else {
+    out += txt(150, y + 26, "alátámasztás: ?", "fig-ang");
+  }
+  if(o.note) out += txt(150, 182, o.note, "fig-side");
+  return `<svg viewBox="0 0 300 200" role="img" aria-label="Rúd két teherrel és alátámasztással">${out}</svg>`;
 }
 
 /* ---------- parabola: y = (x − u)² + v, koordinátarendszerrel ---------- */
@@ -1139,7 +1194,7 @@ function svgParab(o){
 
 const figHTML = f => !f ? "" :
   (f.type === "force" ? svgForce(f) : f.type === "spring" ? svgSpring(f) :
-   f.type === "torque" ? svgTorque(f) : f.type === "parab" ? svgParab(f) :
+   f.type === "torque" ? svgTorque(f) : f.type === "lever" ? svgLever(f) : f.type === "parab" ? svgParab(f) :
    f.type === "right" ? svgRight(f) : svgIso(f)) +
   '<span class="cap">' + (f.cap || "az ábra méretarányos") + '</span>';
 
@@ -3557,12 +3612,55 @@ ${work("m₁ = 30 kg, m₂ = 45 kg, k₁ = 1,5 m", [
 </div>
 <p>A nehezebb testvérnek <b>közelebb</b> kell ülnie a tengelyhez.</p>
 
+<h2>5. Ha az erő nem merőleges a rúdra</h2>
+<p>Ha az erő <b>ferdén</b> hat, az erőkar nem a rúd menti távolság, hanem a tengelyből a <b>hatásvonalra húzott merőleges</b> — ez rövidebb.</p>
+<div class="figure">${svgTorque({ span:2, forces:[{ x:-1.5, label:"F", kind:"g", ang:30 }], arms:[{ x:-1.5, label:"r", below:true }] })}<span class="cap">szaggatott: a hatásvonal · k: a tengelyből rá húzott merőleges</span></div>
+<ul>
+  <li><span class="m">r</span> = a forgástengely és az erő <b>támadáspontjának</b> távolsága</li>
+  <li><span class="m">α</span> = az <b>erő és a rúd</b> által bezárt szög</li>
+  <li>erőkar: <span class="m">k = r · sin α</span> (derékszögű háromszög: r az átfogó, k az α-val szemközti befogó)</li>
+</ul>
+<div class="column">M = F · k
+<b>M = F · r · sin α</b></div>
+<div class="note">
+  <p class="note-label">Két határeset</p>
+  <p><span class="m">α = 90°</span>: sin 90° = 1 → k = r, ez a merőleges eset (<span class="m">M = F · r</span>).</p>
+  <p><span class="m">α = 0°</span>: sin 0° = 0 → a hatásvonal átmegy a tengelyen, <b>nincs forgatás</b>.</p>
+</div>
+<div class="works">
+${work("F = 40 N,  r = 0,5 m,  α = 30°", [
+  ["k = r · sin α = 0,5 · sin 30°", "számológép DEG módban"],
+  ["k = 0,5 · 0,5 = <i>0,25 m</i>", ""],
+  ["M = F · k = 40 · 0,25", ""]
+], "M = 10 Nm")}
+</div>
+
+<h2>6. Hova kerüljön az alátámasztás?</h2>
+<p>Adott a rúd <b>teljes hossza</b> (L) és a két végén a két teher. Az alátámasztás helye a kérdés: legyen az <b>F₁ végétől x</b> távolságra — ekkor a másik kar <b>L − x</b>.</p>
+<div class="figure">${svgLever({ L:1.4, loads:[{ at:0, label:"2 kg" }, { at:1.4, label:"5 kg" }], pivot:1, dims:[{ a:0, b:1, label:"x" }, { a:1, b:1.4, label:"L − x" }, { a:0, b:1.4, label:"L", row:1 }] })}<span class="cap">az alátámasztás a nehezebb teherhez van közelebb</span></div>
+<div class="column">F₁ · x = F₂ · (L − x)
+F₁ · x = F₂ · L − F₂ · x
+F₁ · x + F₂ · x = F₂ · L
+x · (F₁ + F₂) = F₂ · L
+<b>x = F₂ · L / (F₁ + F₂)</b></div>
+<p>A számlálóban a <b>másik</b> oldal ereje áll. Mivel <span class="m">F = m · g</span>, a g kiesik: <span class="m">x = m₂ · L / (m₁ + m₂)</span>. A rúd saját súlyát elhanyagoljuk.</p>
+<div class="works">
+${work("m₁ = 2 kg,  m₂ = 5 kg,  L = 1,4 m", [
+  ["F₁ = 2 · 10 = <i>20 N</i>,  F₂ = 5 · 10 = <i>50 N</i>", "tömegből erő"],
+  ["x = F₂ · L / (F₁ + F₂)", "x: a 2 kg-os végtől"],
+  ["x = 50 · 1,4 / (20 + 50) = 70 / 70", ""]
+], "x = 1 m")}
+</div>
+<p>A másik kar <span class="m">L − x = 0,4 m</span>. Ellenőrzés: <span class="m">20 · 1 = 50 · 0,4 = 20 Nm</span> ✓</p>
+
 <div class="note trap">
   <p class="note-label">Tipikus hibák</p>
   <p>A <b>kart centiméterben</b> hagyni: 25 cm → <b>0,25 m</b>, különben százszoros lesz az eredmény.</p>
   <p>A <b>tömeget erőként</b> használni: 30 kg nem 30 N — előbb <span class="m">F = m · g</span>.</p>
   <p>A mértékegység <b>Nm</b>, nem N és nem J.</p>
   <p>Egyensúlynál a nagyobb erőhöz <b>kisebb</b> kar tartozik — ha fordítva jön ki, felcserélted az oldalakat.</p>
+  <p>Ferde erőnél a <b>sin</b> kell, nem a cos: α az <b>erő és a rúd</b> szöge. A számológép legyen <b>DEG</b> módban.</p>
+  <p>Az alátámasztásnál x-et az <b>F₁ végétől</b> méred, a képlet számlálójában pedig az <b>F₂</b> áll.</p>
 </div>
 `;
 
@@ -6542,7 +6640,7 @@ const SUBJECTS = [
       { kind:"lendulet",  label:"Lendület", note:"p = m · v, erőlökés, megmaradás" },
       { kind:"suruseg",   label:"Sűrűség",  note:"ρ = m / V, az állandó hányados" },
       { kind:"ero",       label:"Nehézségi erő és rugóerő", note:"vektorok iránya, Hooke-törvény" },
-      { kind:"forgatas",  label:"Forgatónyomaték", note:"M = F · k, erőkar, forgási egyensúly" }
+      { kind:"forgatas",  label:"Forgatónyomaték", note:"M = F · k, egyensúly, ferde erő, alátámasztás" }
     ],
     topics: [
       {
@@ -7456,11 +7554,11 @@ const SUBJECTS = [
         id: "fiz-forg-lecke",
         lesson: true,
         title: "Így csináld — magyarázat ábrákkal",
-        sub: "a forgatónyomaték, az erőkar és a forgási egyensúly",
+        sub: "erőkar, forgási egyensúly, ferde erő (sin α) és az alátámasztás helye",
         eyebrow: "Fizika · forgatónyomaték",
         heading: "Forgatónyomaték",
         body: LESSON_FORG,
-        practice: ["fiz-forg-elm", "fiz-forg-szam", "fiz-forg-egy", "fiz-forg-abra"]
+        practice: ["fiz-forg-elm", "fiz-forg-szam", "fiz-forg-egy", "fiz-forg-sin", "fiz-forg-alat", "fiz-forg-abra"]
       },
       {
         kind: "forgatas",
@@ -7642,6 +7740,153 @@ const SUBJECTS = [
       },
       {
         kind: "forgatas",
+        id: "fiz-forg-sin",
+        title: "Ferde erő — M = F · r · sin α",
+        sub: "ha az erő nem merőleges a rúdra: az erőkar k = r · sin α",
+        questions: [
+          { q:"Mi az erőkar, ha az erő nem merőlegesen hat a rúdra?",
+            fig:{ type:"torque", span:2, forces:[{ x:-1.5, label:"F", kind:"g", ang:30 }], arms:[{ x:-1.5, label:"r", below:true }], cap:"szaggatott vonal: az erő hatásvonala" },
+            options:["A forgástengelyből az erő hatásvonalára húzott merőleges szakasz hossza", "A forgástengely és a támadáspont távolsága a rúd mentén", "A rúd teljes hossza", "Az erővektor hossza"],
+            correct:0,
+            explain:"Az erőkar a tengely és a hatásvonal távolsága, a távolságot pedig mindig merőlegesen mérjük. Csak merőleges erőnél esik egybe a támadáspont távolságával (k = r)." },
+          { q:"Hogyan számoljuk ki az erőkart ferde erőnél?",
+            given:"r = a tengely és a támadáspont távolsága\nα = az erő és a rúd szöge",
+            options:["k = r · sin α", "k = r · cos α", "k = r / sin α", "k = r · tg α"],
+            correct:0,
+            explain:"A tengely, a támadáspont és a merőleges talppontja derékszögű háromszög: r az átfogó, k az α-val szemközti befogó. sin α = k / r, tehát k = r · sin α." },
+          { q:"Mekkora a forgatónyomaték?",
+            given:"F = 40 N\nr = 0,5 m\nα = 30°",
+            fig:{ type:"torque", span:2, forces:[{ x:-1.6, label:"F", kind:"g", ang:30 }], arms:[{ x:-1.6, label:"r", below:true }], cap:"a szög az erő és a rúd között" },
+            options:["10 Nm", "20 Nm", "≈ 17,3 Nm", "40 Nm"],
+            correct:0,
+            explain:"k = r · sin α = 0,5 · sin 30° = 0,25 m, M = F · k = 40 · 0,25 = 10 Nm." },
+          { q:"Mekkora a forgatónyomaték?",
+            given:"F = 100 N\nr = 0,8 m\nα = 30°",
+            options:["40 Nm", "80 Nm", "≈ 69,3 Nm", "160 Nm"],
+            correct:0,
+            explain:"k = r · sin α = 0,8 · sin 30° = 0,4 m, M = F · k = 100 · 0,4 = 40 Nm." },
+          { q:"Mekkora a forgatónyomaték?",
+            given:"F = 50 N\nr = 60 cm\nα = 90°",
+            options:["30 Nm", "3000 Nm", "0 Nm", "15 Nm"],
+            correct:0,
+            explain:"60 cm = 0,6 m. sin 90° = 1, az erő merőleges, ezért k = r = 0,6 m. M = F · k = 50 · 0,6 = 30 Nm." },
+          { q:"Mekkora a forgatónyomaték?",
+            given:"F = 20 N\nr = 1,5 m\nα = 60°",
+            options:["≈ 26 Nm", "30 Nm", "15 Nm", "≈ 34,6 Nm"],
+            correct:0,
+            explain:"k = r · sin α = 1,5 · sin 60° ≈ 1,299 m, M = F · k = 20 · 1,299 ≈ 26 Nm." },
+          { q:"Mekkora a forgatónyomaték?",
+            given:"F = 80 N\nr = 0,25 m\nα = 45°",
+            options:["≈ 14,1 Nm", "20 Nm", "≈ 56,6 Nm", "≈ 28,3 Nm"],
+            correct:0,
+            explain:"k = r · sin α = 0,25 · sin 45° ≈ 0,177 m, M = F · k = 80 · 0,177 ≈ 14,1 Nm." },
+          { q:"Mekkora az erőkar?",
+            given:"r = 2 m\nα = 30°",
+            options:["1 m", "≈ 1,7 m", "4 m", "2 m"],
+            correct:0,
+            explain:"k = r · sin α = 2 · sin 30° = 2 · 0,5 = 1 m. A cos-szal 1,7 m jönne ki — az a rúd menti vetület, nem a merőleges távolság." },
+          { q:"Mekkora erővel húzzák a rudat?",
+            given:"M = 12 Nm\nr = 0,6 m\nα = 30°",
+            options:["40 N", "20 N", "3,6 N", "≈ 23,1 N"],
+            correct:0,
+            explain:"Előbb az erőkar: k = r · sin α = 0,6 · 0,5 = 0,3 m. Utána F = M / k = 12 / 0,3 = 40 N." },
+          { q:"A rudat pontosan a saját irányában (α = 0°) húzod. Mekkora a forgatónyomaték?",
+            given:"F = 100 N\nr = 1 m\nα = 0°",
+            options:["0 Nm", "100 Nm", "50 Nm", "1 Nm"],
+            correct:0,
+            explain:"sin 0° = 0: a hatásvonal átmegy a forgástengelyen, az erőkar nulla, ezért a rúd nem fordul el." },
+          { q:"Ugyanakkora erővel, ugyanott húzod a rudat. Melyik szögnél a legnagyobb a forgatónyomaték?",
+            options:["90°-nál", "60°-nál", "30°-nál", "0°-nál"],
+            correct:0,
+            explain:"M = F · r · sin α, és a sin α 90°-nál a legnagyobb (1). Minél ferdébb az erő, annál kisebb a kar és a forgatónyomaték." },
+          { q:"Egy 30 cm hosszú csavarkulcs végét 200 N erővel húzod, az erő 60°-os szöget zár be a kulccsal. Mekkora a forgatónyomaték?",
+            options:["≈ 52 Nm", "60 Nm", "30 Nm", "≈ 5196 Nm"],
+            correct:0,
+            explain:"30 cm = 0,3 m. k = 0,3 · sin 60° ≈ 0,26 m, M = 200 · 0,26 ≈ 52 Nm. A centiméterrel számolva százszor ekkora jönne ki." },
+          { q:"Hányszorosára változik a forgatónyomaték, ha a merőleges helyett 30°-os szögben húzod a rudat (ugyanakkora erővel, ugyanott)?",
+            options:["A felére csökken", "A harmadára csökken", "Nem változik", "A kétszeresére nő"],
+            correct:0,
+            explain:"Merőlegesen sin 90° = 1, 30°-nál sin 30° = 0,5 — a kar, és vele a forgatónyomaték, a felére csökken." }
+        ]
+      },
+      {
+        kind: "forgatas",
+        id: "fiz-forg-alat",
+        title: "Hova kerüljön az alátámasztás?",
+        sub: "adott a rúd hossza és a két teher: x = F₂ · L / (F₁ + F₂)",
+        questions: [
+          { q:"A rúd teljes hossza L, az alátámasztás az egyik végétől x távolságra van. Mekkora a másik oldal erőkarja?",
+            options:["L − x", "x − L", "L + x", "L / x"],
+            correct:0,
+            explain:"A két erőkar együtt kiadja a rúd teljes hosszát: x + (L − x) = L." },
+          { q:"Melyik egyenletből indulunk ki?",
+            given:"F₁ a rúd egyik végén, F₂ a másikon\nx = az F₁ végétől mért távolság",
+            options:["F₁ · x = F₂ · (L − x)", "F₁ · (L − x) = F₂ · x", "F₁ · x = F₂ · x", "F₁ + F₂ = L"],
+            correct:0,
+            explain:"Forgási egyensúly: F₁ · k₁ = F₂ · k₂. Az F₁ karja x (az ő végétől mérünk), az F₂-é a maradék: L − x." },
+          { q:"Mi lesz az F₁ · x = F₂ · (L − x) egyenletből x-re rendezve?",
+            options:["x = F₂ · L / (F₁ + F₂)", "x = F₁ · L / (F₁ + F₂)", "x = (F₁ + F₂) / (F₂ · L)", "x = F₂ · L / (F₂ − F₁)"],
+            correct:0,
+            explain:"Zárójelbontás: F₁x = F₂L − F₂x. Átvisszük: F₁x + F₂x = F₂L. Kiemelés: x(F₁ + F₂) = F₂L. Osztás: x = F₂ · L / (F₁ + F₂). A számlálóban a másik oldal ereje áll." },
+          { q:"Hova kell tenni az alátámasztást, hogy a rúd egyensúlyban legyen?",
+            given:"m₁ = 2 kg, m₂ = 5 kg (a két végén)\nL = 1,4 m\ng = 10 m/s²",
+            fig:{ type:"lever", L:1.4, loads:[{ at:0, label:"2 kg" }, { at:1.4, label:"5 kg" }], dims:[{ a:0, b:1.4, label:"L = 1,4 m", row:1 }], cap:"hol legyen a forgástengely?" },
+            options:["1 m-re a 2 kg-os végtől", "0,4 m-re a 2 kg-os végtől", "0,7 m-re a 2 kg-os végtől", "0,56 m-re a 2 kg-os végtől"],
+            correct:0,
+            explain:"F₁ = 20 N, F₂ = 50 N. x = F₂ · L / (F₁ + F₂) = 50 · 1,4 / 70 = 1 m. Ellenőrzés: 20 · 1 = 50 · 0,4 = 20 Nm." },
+          { q:"Hova kell tenni az alátámasztást, hogy a rúd egyensúlyban legyen?",
+            given:"m₁ = 2 kg, m₂ = 5 kg (a két végén)\nL = 3,5 m\ng = 10 m/s²",
+            options:["2,5 m-re a 2 kg-os végtől", "1 m-re a 2 kg-os végtől", "1,75 m-re a 2 kg-os végtől", "1,4 m-re a 2 kg-os végtől"],
+            correct:0,
+            explain:"F₁ = 20 N, F₂ = 50 N. x = F₂ · L / (F₁ + F₂) = 50 · 3,5 / 70 = 2,5 m. Ellenőrzés: 20 · 2,5 = 50 · 1 = 50 Nm." },
+          { q:"Hova kell tenni az alátámasztást, hogy a rúd egyensúlyban legyen?",
+            given:"m₁ = 3 kg, m₂ = 1 kg (a két végén)\nL = 2 m\ng = 10 m/s²",
+            options:["0,5 m-re a 3 kg-os végtől", "1,5 m-re a 3 kg-os végtől", "1 m-re a 3 kg-os végtől", "0,67 m-re a 3 kg-os végtől"],
+            correct:0,
+            explain:"F₁ = 30 N, F₂ = 10 N. x = F₂ · L / (F₁ + F₂) = 10 · 2 / 40 = 0,5 m. Ellenőrzés: 30 · 0,5 = 10 · 1,5 = 15 Nm." },
+          { q:"Hova kell tenni az alátámasztást, hogy a rúd egyensúlyban legyen?",
+            given:"m₁ = 10 kg, m₂ = 30 kg (a két végén)\nL = 4 m\ng = 10 m/s²",
+            options:["3 m-re a 10 kg-os végtől", "1 m-re a 10 kg-os végtől", "2 m-re a 10 kg-os végtől", "1,5 m-re a 10 kg-os végtől"],
+            correct:0,
+            explain:"F₁ = 100 N, F₂ = 300 N. x = F₂ · L / (F₁ + F₂) = 300 · 4 / 400 = 3 m. Ellenőrzés: 100 · 3 = 300 · 1 = 300 Nm." },
+          { q:"Hova kell tenni az alátámasztást, hogy a rúd egyensúlyban legyen?",
+            given:"m₁ = 200 g, m₂ = 300 g (a két végén)\nL = 50 cm",
+            options:["30 cm-re a 200 g-os végtől", "20 cm-re a 200 g-os végtől", "25 cm-re a 200 g-os végtől", "35 cm-re a 200 g-os végtől"],
+            correct:0,
+            explain:"A g kiesik, számolhatunk a tömegekkel: x = m₂ · L / (m₁ + m₂) = 300 · 50 / 500 = 30 cm. A másik kar 20 cm." },
+          { q:"Az alátámasztás az F₁ végétől hány méterre legyen?",
+            given:"F₁ = 200 N, F₂ = 300 N\nL = 2,5 m",
+            options:["1,5 m", "1 m", "1,25 m", "1,75 m"],
+            correct:0,
+            explain:"x = F₂ · L / (F₁ + F₂) = 300 · 2,5 / 500 = 750 / 500 = 1,5 m. Ellenőrzés: 200 · 1,5 = 300 · 1 = 300 Nm." },
+          { q:"Ellenőrzés: mekkora a forgatónyomaték egy-egy oldalon?",
+            given:"m₁ = 2 kg, m₂ = 5 kg, L = 1,4 m\nx = 1 m (az m₁ végétől)\ng = 10 m/s²",
+            fig:{ type:"lever", L:1.4, loads:[{ at:0, label:"2 kg" }, { at:1.4, label:"5 kg" }], pivot:1, dims:[{ a:0, b:1, label:"x" }, { a:1, b:1.4, label:"L − x" }, { a:0, b:1.4, label:"L", row:1 }], cap:"az alátámasztás a 2 kg-os végtől 1 m-re" },
+            options:["20 Nm", "50 Nm", "70 Nm", "14 Nm"],
+            correct:0,
+            explain:"F₁ = 20 N, F₂ = 50 N. A bal oldalon 20 · 1 = 20 Nm, a jobb oldalon 50 · (1,4 − 1) = 50 · 0,4 = 20 Nm — egyenlők, tehát egyensúly van." },
+          { q:"Melyik teherhez van közelebb az alátámasztás?",
+            options:["A nehezebbhez", "A könnyebbhez", "Mindig középen van", "A rúd hosszától függ"],
+            correct:0,
+            explain:"Nagyobb erőhöz kisebb kar tartozik, hogy a két forgatónyomaték egyenlő legyen — az alátámasztás a nehezebb teher felé tolódik." },
+          { q:"Miért eshet ki a g a képletből, ha mindkét terhet kg-ban adják meg?",
+            options:["Mert mindkét erőben szorzóként szerepel, így egyszerűsíthetünk vele", "Mert a g értéke 1", "Mert a forgatónyomatékhoz nem kell erő", "Mert a tömeg és az erő ugyanaz"],
+            correct:0,
+            explain:"x = m₂ · g · L / (m₁ · g + m₂ · g) = m₂ · L / (m₁ + m₂). A tömeg ettől még nem erő — csak ebben a hányadosban egyszerűsödik ki a g." },
+          { q:"Hova kell tenni az alátámasztást, ha a két végén egyforma teher van?",
+            given:"m₁ = m₂ = 4 kg\nL = 3 m",
+            options:["Pontosan középre", "A bal végéhez közelebb", "A jobb végéhez közelebb", "Bárhova, mindig egyensúly lesz"],
+            correct:0,
+            explain:"Egyenlő erőkhöz egyenlő kar tartozik: x = F · L / (F + F) = L / 2." },
+          { q:"Mi történik a rúddal, ha az alátámasztás középen van?",
+            fig:{ type:"lever", L:1.4, loads:[{ at:0, label:"2 kg" }, { at:1.4, label:"5 kg" }], pivot:0.7, dims:[{ a:0, b:0.7, label:"0,7 m" }, { a:0.7, b:1.4, label:"0,7 m" }, { a:0, b:1.4, label:"L", row:1 }], cap:"az alátámasztás a rúd közepén" },
+            options:["Az 5 kg-os oldal lesüllyed", "A 2 kg-os oldal lesüllyed", "Egyensúlyban marad", "Felemelkedik a rúd"],
+            correct:0,
+            explain:"Középen a két kar egyenlő (0,7 m), így a nagyobb erő nyer: 50 · 0,7 = 35 Nm > 20 · 0,7 = 14 Nm. Egyensúlyhoz az alátámasztást az 5 kg felé kell tolni." }
+        ]
+      },
+      {
+        kind: "forgatas",
         id: "fiz-forg-abra",
         title: "Ábraolvasás — emelő és erőkar",
         sub: "minden kérdéshez ábra: hol a tengely, melyik kar, merre fordul",
@@ -7693,7 +7938,12 @@ const SUBJECTS = [
               arms:[{ x:-1.5, label:"k₁" }, { x:1, label:"k₂" }], cap:"a jobb oldali nyíl hosszabb, a karja rövidebb" },
             options:["Egyensúlyt: a kisebb erő nagyobb karon, a nagyobb erő kisebb karon hat","Azt, hogy a bal oldal lemegy","Azt, hogy a rúd eltörik","Azt, hogy nincs forgástengely"],
             correct:0,
-            explain:"Ez a tipikus mérleghinta-eset: F₁ · k₁ = F₂ · k₂, vagyis a nehezebb oldal ül közelebb a tengelyhez." }
+            explain:"Ez a tipikus mérleghinta-eset: F₁ · k₁ = F₂ · k₂, vagyis a nehezebb oldal ül közelebb a tengelyhez." },
+          { q:"Melyik szakasz az erőkar ezen az ábrán?",
+            fig:{ type:"torque", span:2, forces:[{ x:1.5, label:"F", kind:"f", ang:45 }], arms:[{ x:1.5, label:"r", below:true }], cap:"szaggatott vonal: a hatásvonal" },
+            options:["A k: a tengelyből az erő hatásvonalára húzott merőleges", "Az r: a tengelytől a támadáspontig tartó szakasz", "Az erővektor hossza", "A rúd teljes hossza"],
+            correct:0,
+            explain:"Ferde erőnél az erőkar nem a rúd menti r, hanem a tengely és a szaggatott hatásvonal merőleges távolsága: k = r · sin α." }
         ]
       },
     ]

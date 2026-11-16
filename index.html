@@ -1058,7 +1058,8 @@ function svgTorque(o){
   let out = "";
   /* erőkarok a rúd fölött */
   (o.arms || []).forEach(a => {
-    const x = X(a.x), ay = a.below ? 142 : 62;
+    const ferde = (o.forces || []).some(f => f.ang != null && f.ang < 90);
+    const x = X(a.x), ay = a.below ? 142 : ferde ? 30 : 62;
     out += `<line x1="150" y1="${ay}" x2="${x}" y2="${ay}" class="fig-thin"/>`
         +  `<line x1="150" y1="${ay - 5}" x2="150" y2="${ay + 5}" class="fig-thin"/>`
         +  `<line x1="${x}" y1="${ay - 5}" x2="${x}" y2="${ay + 5}" class="fig-thin"/>`
@@ -1085,27 +1086,16 @@ function svgTorque(o){
   return `<svg viewBox="0 0 300 200" role="img" aria-label="Emelő forgástengellyel és erőkkel">${out}</svg>`;
 }
 
-/* ferde erő a rúdon (rúd y-ján, x px-nél): a nyíl az α szögben kifelé-lefelé mutat,
-   a szaggatott hatásvonal visszafelé a tengelyig, és a tengelyből rá húzott merőleges = k */
+/* ferde erő a rúdon, ahogy a füzetben: a nyíl ferdén érkezik a támadáspontba (hegye a rúdon),
+   az α a rúd és az erő között, a k a tengely és a támadáspont távolsága (a rúd fölött) */
 function ferdeEro(x, y, f){
-  const ki = x < 150 ? -1 : 1, a = f.ang * Math.PI / 180, len = (f.len || 1) * 58, kind = f.kind || "g";
-  const dx = ki * Math.cos(a), dy = Math.sin(a);
-  const x2 = x + dx * len, y2 = y + dy * len;
-  const t = (150 - x) * dx;                              /* a merőleges talppontja: Q = P + t·d */
-  const qx = x + t * dx, qy = y + t * dy;
-  let out = `<line x1="${(x + (t - 16) * dx).toFixed(1)}" y1="${(y + (t - 16) * dy).toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="fig-dash"/>`;
-  /* k: a tengelytől a hatásvonalig, derékszög-jellel */
-  const kl = Math.hypot(qx - 150, qy - y), ux = (qx - 150) / kl, uy = (qy - y) / kl, m = 7;
-  out += `<line x1="150" y1="${y}" x2="${qx.toFixed(1)}" y2="${qy.toFixed(1)}" stroke="var(--accent)" stroke-width="1.6"/>`;
-  out += `<path d="M ${(qx - ux * m).toFixed(1)} ${(qy - uy * m).toFixed(1)} L ${(qx - ux * m - dx * m).toFixed(1)} ${(qy - uy * m - dy * m).toFixed(1)} L ${(qx - dx * m).toFixed(1)} ${(qy - dy * m).toFixed(1)}" fill="none" stroke="var(--accent)" stroke-width="1.1"/>`;
-  /* a k felirat a szakasz közepétől a támadásponttal ellentétes oldalra */
-  let nx = -uy, ny = ux;
-  if(nx * (x - 150) + ny * 0 > 0){ nx = -nx; ny = -ny; }
-  out += txt((150 + qx) / 2 + nx * 11, (y + qy) / 2 + ny * 11, f.kLabel || "k", "fig-ang");
-  /* az α szög a rúd és az erő között */
-  const ar = angArc(x, y, [x + ki * 26, y], [x2, y2], 26);
-  out += `<path d="${ar.d}" fill="none" stroke="var(--accent)" stroke-width="1.3"/>` + txt(ar.mid[0], ar.mid[1], "α", "fig-ang");
-  out += vecArrow(x, y, x2, y2, kind) + txt(Math.max(10, Math.min(290, x2 + ki * 4)), y2 + 15, f.label, "fig-lbl " + kind);
+  const ki = x < 150 ? -1 : 1, a = f.ang * Math.PI / 180, len = (f.len || 1) * 52, kind = f.kind || "g";
+  const dx = ki * Math.cos(a), dy = Math.sin(a);           /* az erő iránya: kifelé-lefelé */
+  const x1 = x - dx * len, y1 = y - dy * len;              /* a nyíl töve: befelé-fölfelé */
+  const ar = angArc(x, y, [x - ki * 30, y], [x1, y1], 24);
+  let out = `<path d="${ar.d}" fill="none" stroke="var(--accent)" stroke-width="1.3"/>` + txt(ar.mid[0], ar.mid[1], "α", "fig-ang");
+  out += vecArrow(x1, y1, x, y, kind);
+  out += txt((x + x1) / 2 + ki * 10, (y + y1) / 2 - 8, f.label, "fig-lbl " + kind, ki < 0 ? "end" : "start");
   return out;
 }
 
@@ -3613,25 +3603,23 @@ ${work("m₁ = 30 kg, m₂ = 45 kg, k₁ = 1,5 m", [
 <p>A nehezebb testvérnek <b>közelebb</b> kell ülnie a tengelyhez.</p>
 
 <h2>5. Ha az erő nem merőleges a rúdra</h2>
-<p>Ha az erő <b>ferdén</b> hat, az erőkar nem a rúd menti távolság, hanem a tengelyből a <b>hatásvonalra húzott merőleges</b> — ez rövidebb.</p>
-<div class="figure">${svgTorque({ span:2, forces:[{ x:-1.5, label:"F", kind:"g", ang:30 }], arms:[{ x:-1.5, label:"r", below:true }] })}<span class="cap">szaggatott: a hatásvonal · k: a tengelyből rá húzott merőleges</span></div>
+<p>Ha az erő <b>ferdén</b> hat a rúdra, kisebbet forgat — a képletbe bekerül a <b>sin α</b>:</p>
+<div class="figure">${svgTorque({ span:2, forces:[{ x:-1.6, label:"F", kind:"g", ang:35 }], arms:[{ x:-1.6, label:"k" }] })}<span class="cap">α: az erő és a rúd szöge · k: a tengely és az erő távolsága</span></div>
+<div class="column"><b>M = F · k · sin α</b></div>
 <ul>
-  <li><span class="m">r</span> = a forgástengely és az erő <b>támadáspontjának</b> távolsága</li>
+  <li><span class="m">k</span> = a forgástengely és az erő <b>támadáspontjának</b> távolsága (méterben)</li>
   <li><span class="m">α</span> = az <b>erő és a rúd</b> által bezárt szög</li>
-  <li>erőkar: <span class="m">k = r · sin α</span> (derékszögű háromszög: r az átfogó, k az α-val szemközti befogó)</li>
 </ul>
-<div class="column">M = F · k
-<b>M = F · r · sin α</b></div>
 <div class="note">
   <p class="note-label">Két határeset</p>
-  <p><span class="m">α = 90°</span>: sin 90° = 1 → k = r, ez a merőleges eset (<span class="m">M = F · r</span>).</p>
-  <p><span class="m">α = 0°</span>: sin 0° = 0 → a hatásvonal átmegy a tengelyen, <b>nincs forgatás</b>.</p>
+  <p><span class="m">α = 90°</span>: sin 90° = 1 → <span class="m">M = F · k</span>, ez a merőleges eset.</p>
+  <p><span class="m">α = 0°</span>: sin 0° = 0 → a rúd irányában húzva <b>nincs forgatás</b>.</p>
 </div>
 <div class="works">
-${work("F = 40 N,  r = 0,5 m,  α = 30°", [
-  ["k = r · sin α = 0,5 · sin 30°", "számológép DEG módban"],
-  ["k = 0,5 · 0,5 = <i>0,25 m</i>", ""],
-  ["M = F · k = 40 · 0,25", ""]
+${work("F = 40 N,  k = 0,5 m,  α = 30°", [
+  ["M = F · k · sin α", "számológép DEG módban"],
+  ["M = 40 · 0,5 · sin 30°", ""],
+  ["M = 40 · 0,5 · <i>0,5</i>", "sin 30° = 0,5"]
 ], "M = 10 Nm")}
 </div>
 
@@ -3659,7 +3647,7 @@ ${work("m₁ = 2 kg,  m₂ = 5 kg,  L = 1,4 m", [
   <p>A <b>tömeget erőként</b> használni: 30 kg nem 30 N — előbb <span class="m">F = m · g</span>.</p>
   <p>A mértékegység <b>Nm</b>, nem N és nem J.</p>
   <p>Egyensúlynál a nagyobb erőhöz <b>kisebb</b> kar tartozik — ha fordítva jön ki, felcserélted az oldalakat.</p>
-  <p>Ferde erőnél a <b>sin</b> kell, nem a cos: α az <b>erő és a rúd</b> szöge. A számológép legyen <b>DEG</b> módban.</p>
+  <p>Ferde erőnél <b>M = F · k · sin α</b> — a sin kell, nem a cos; α az <b>erő és a rúd</b> szöge. A számológép legyen <b>DEG</b> módban.</p>
   <p>Az alátámasztásnál x-et az <b>F₁ végétől</b> méred, a képlet számlálójában pedig az <b>F₂</b> áll.</p>
 </div>
 `;
@@ -7554,7 +7542,7 @@ const SUBJECTS = [
         id: "fiz-forg-lecke",
         lesson: true,
         title: "Így csináld — magyarázat ábrákkal",
-        sub: "erőkar, forgási egyensúly, ferde erő (sin α) és az alátámasztás helye",
+        sub: "erőkar, forgási egyensúly, ferde erő (M = F · k · sin α) és az alátámasztás helye",
         eyebrow: "Fizika · forgatónyomaték",
         heading: "Forgatónyomaték",
         body: LESSON_FORG,
@@ -7741,72 +7729,71 @@ const SUBJECTS = [
       {
         kind: "forgatas",
         id: "fiz-forg-sin",
-        title: "Ferde erő — M = F · r · sin α",
-        sub: "ha az erő nem merőleges a rúdra: az erőkar k = r · sin α",
+        title: "Ferde erő — M = F · k · sin α",
+        sub: "ha az erő nem merőleges a rúdra: a szög szinuszával szorzunk",
         questions: [
-          { q:"Mi az erőkar, ha az erő nem merőlegesen hat a rúdra?",
-            fig:{ type:"torque", span:2, forces:[{ x:-1.5, label:"F", kind:"g", ang:30 }], arms:[{ x:-1.5, label:"r", below:true }], cap:"szaggatott vonal: az erő hatásvonala" },
-            options:["A forgástengelyből az erő hatásvonalára húzott merőleges szakasz hossza", "A forgástengely és a támadáspont távolsága a rúd mentén", "A rúd teljes hossza", "Az erővektor hossza"],
+          { q:"Mit jelöl az α az M = F · k · sin α képletben?",
+            fig:{ type:"torque", span:2, forces:[{ x:-1.5, label:"F", kind:"g", ang:30 }], arms:[{ x:-1.5, label:"k" }], cap:"a támadáspontnál a rúd és az erő szöge" },
+            options:["Az erő és a rúd által bezárt szöget", "Az erő és a függőleges szögét", "A rúd dőlésszögét a talajhoz képest", "Azt, hogy hány fokot fordul el a rúd"],
             correct:0,
-            explain:"Az erőkar a tengely és a hatásvonal távolsága, a távolságot pedig mindig merőlegesen mérjük. Csak merőleges erőnél esik egybe a támadáspont távolságával (k = r)." },
-          { q:"Hogyan számoljuk ki az erőkart ferde erőnél?",
-            given:"r = a tengely és a támadáspont távolsága\nα = az erő és a rúd szöge",
-            options:["k = r · sin α", "k = r · cos α", "k = r / sin α", "k = r · tg α"],
+            explain:"Az α az erő és a rúd közti szög — az ábrán a támadáspontnál, a rúd és a nyíl között." },
+          { q:"Mi a forgatónyomaték képlete, ha az erő nem merőleges a rúdra?",
+            options:["M = F · k · sin α", "M = F · k · cos α", "M = F · k / sin α", "M = F · sin α"],
             correct:0,
-            explain:"A tengely, a támadáspont és a merőleges talppontja derékszögű háromszög: r az átfogó, k az α-val szemközti befogó. sin α = k / r, tehát k = r · sin α." },
+            explain:"Ferde erőnél a merőleges esethez képest egy sin α szorzó kerül a képletbe: M = F · k · sin α. Merőlegesen sin 90° = 1, ezért ott M = F · k." },
           { q:"Mekkora a forgatónyomaték?",
-            given:"F = 40 N\nr = 0,5 m\nα = 30°",
-            fig:{ type:"torque", span:2, forces:[{ x:-1.6, label:"F", kind:"g", ang:30 }], arms:[{ x:-1.6, label:"r", below:true }], cap:"a szög az erő és a rúd között" },
+            given:"F = 40 N\nk = 0,5 m\nα = 30°",
+            fig:{ type:"torque", span:2, forces:[{ x:-1.6, label:"F", kind:"g", ang:30 }], arms:[{ x:-1.6, label:"k" }] },
             options:["10 Nm", "20 Nm", "≈ 17,3 Nm", "40 Nm"],
             correct:0,
-            explain:"k = r · sin α = 0,5 · sin 30° = 0,25 m, M = F · k = 40 · 0,25 = 10 Nm." },
+            explain:"M = F · k · sin α = 40 · 0,5 · sin 30° = 40 · 0,5 · 0,5 = 10 Nm." },
           { q:"Mekkora a forgatónyomaték?",
-            given:"F = 100 N\nr = 0,8 m\nα = 30°",
+            given:"F = 100 N\nk = 0,8 m\nα = 30°",
             options:["40 Nm", "80 Nm", "≈ 69,3 Nm", "160 Nm"],
             correct:0,
-            explain:"k = r · sin α = 0,8 · sin 30° = 0,4 m, M = F · k = 100 · 0,4 = 40 Nm." },
+            explain:"M = F · k · sin α = 100 · 0,8 · sin 30° = 100 · 0,8 · 0,5 = 40 Nm." },
           { q:"Mekkora a forgatónyomaték?",
-            given:"F = 50 N\nr = 60 cm\nα = 90°",
+            given:"F = 50 N\nk = 60 cm\nα = 90°",
             options:["30 Nm", "3000 Nm", "0 Nm", "15 Nm"],
             correct:0,
-            explain:"60 cm = 0,6 m. sin 90° = 1, az erő merőleges, ezért k = r = 0,6 m. M = F · k = 50 · 0,6 = 30 Nm." },
+            explain:"60 cm = 0,6 m. sin 90° = 1, ezért M = F · k = 50 · 0,6 = 30 Nm." },
           { q:"Mekkora a forgatónyomaték?",
-            given:"F = 20 N\nr = 1,5 m\nα = 60°",
+            given:"F = 20 N\nk = 1,5 m\nα = 60°",
             options:["≈ 26 Nm", "30 Nm", "15 Nm", "≈ 34,6 Nm"],
             correct:0,
-            explain:"k = r · sin α = 1,5 · sin 60° ≈ 1,299 m, M = F · k = 20 · 1,299 ≈ 26 Nm." },
+            explain:"M = F · k · sin α = 20 · 1,5 · sin 60° ≈ 20 · 1,5 · 0,866 ≈ 26 Nm." },
           { q:"Mekkora a forgatónyomaték?",
-            given:"F = 80 N\nr = 0,25 m\nα = 45°",
+            given:"F = 80 N\nk = 0,25 m\nα = 45°",
             options:["≈ 14,1 Nm", "20 Nm", "≈ 56,6 Nm", "≈ 28,3 Nm"],
             correct:0,
-            explain:"k = r · sin α = 0,25 · sin 45° ≈ 0,177 m, M = F · k = 80 · 0,177 ≈ 14,1 Nm." },
-          { q:"Mekkora az erőkar?",
-            given:"r = 2 m\nα = 30°",
-            options:["1 m", "≈ 1,7 m", "4 m", "2 m"],
+            explain:"M = F · k · sin α = 80 · 0,25 · sin 45° ≈ 80 · 0,25 · 0,707 ≈ 14,1 Nm." },
+          { q:"Milyen messze van az erő a forgástengelytől?",
+            given:"M = 30 Nm\nF = 100 N\nα = 30°",
+            options:["0,6 m", "0,3 m", "≈ 0,35 m", "≈ 1,67 m"],
             correct:0,
-            explain:"k = r · sin α = 2 · sin 30° = 2 · 0,5 = 1 m. A cos-szal 1,7 m jönne ki — az a rúd menti vetület, nem a merőleges távolság." },
+            explain:"A képletet k-ra rendezve: k = M / (F · sin α) = 30 / (100 · 0,5) = 30 / 50 = 0,6 m." },
           { q:"Mekkora erővel húzzák a rudat?",
-            given:"M = 12 Nm\nr = 0,6 m\nα = 30°",
+            given:"M = 12 Nm\nk = 0,6 m\nα = 30°",
             options:["40 N", "20 N", "3,6 N", "≈ 23,1 N"],
             correct:0,
-            explain:"Előbb az erőkar: k = r · sin α = 0,6 · 0,5 = 0,3 m. Utána F = M / k = 12 / 0,3 = 40 N." },
+            explain:"A képletet F-re rendezve: F = M / (k · sin α) = 12 / (0,6 · 0,5) = 12 / 0,3 = 40 N." },
           { q:"A rudat pontosan a saját irányában (α = 0°) húzod. Mekkora a forgatónyomaték?",
-            given:"F = 100 N\nr = 1 m\nα = 0°",
+            given:"F = 100 N\nk = 1 m\nα = 0°",
             options:["0 Nm", "100 Nm", "50 Nm", "1 Nm"],
             correct:0,
-            explain:"sin 0° = 0: a hatásvonal átmegy a forgástengelyen, az erőkar nulla, ezért a rúd nem fordul el." },
+            explain:"sin 0° = 0, ezért M = F · k · 0 = 0 — a rúd irányában húzva a rúd nem fordul el." },
           { q:"Ugyanakkora erővel, ugyanott húzod a rudat. Melyik szögnél a legnagyobb a forgatónyomaték?",
             options:["90°-nál", "60°-nál", "30°-nál", "0°-nál"],
             correct:0,
-            explain:"M = F · r · sin α, és a sin α 90°-nál a legnagyobb (1). Minél ferdébb az erő, annál kisebb a kar és a forgatónyomaték." },
+            explain:"M = F · k · sin α, és a sin α 90°-nál a legnagyobb (1). Minél ferdébb az erő, annál kisebb a forgatónyomaték." },
           { q:"Egy 30 cm hosszú csavarkulcs végét 200 N erővel húzod, az erő 60°-os szöget zár be a kulccsal. Mekkora a forgatónyomaték?",
             options:["≈ 52 Nm", "60 Nm", "30 Nm", "≈ 5196 Nm"],
             correct:0,
-            explain:"30 cm = 0,3 m. k = 0,3 · sin 60° ≈ 0,26 m, M = 200 · 0,26 ≈ 52 Nm. A centiméterrel számolva százszor ekkora jönne ki." },
+            explain:"30 cm = 0,3 m. M = F · k · sin α = 200 · 0,3 · sin 60° ≈ 200 · 0,3 · 0,866 ≈ 52 Nm. Centiméterrel számolva százszor ekkora jönne ki." },
           { q:"Hányszorosára változik a forgatónyomaték, ha a merőleges helyett 30°-os szögben húzod a rudat (ugyanakkora erővel, ugyanott)?",
             options:["A felére csökken", "A harmadára csökken", "Nem változik", "A kétszeresére nő"],
             correct:0,
-            explain:"Merőlegesen sin 90° = 1, 30°-nál sin 30° = 0,5 — a kar, és vele a forgatónyomaték, a felére csökken." }
+            explain:"Merőlegesen sin 90° = 1, 30°-nál sin 30° = 0,5 — a forgatónyomaték a felére csökken." }
         ]
       },
       {
@@ -7939,11 +7926,11 @@ const SUBJECTS = [
             options:["Egyensúlyt: a kisebb erő nagyobb karon, a nagyobb erő kisebb karon hat","Azt, hogy a bal oldal lemegy","Azt, hogy a rúd eltörik","Azt, hogy nincs forgástengely"],
             correct:0,
             explain:"Ez a tipikus mérleghinta-eset: F₁ · k₁ = F₂ · k₂, vagyis a nehezebb oldal ül közelebb a tengelyhez." },
-          { q:"Melyik szakasz az erőkar ezen az ábrán?",
-            fig:{ type:"torque", span:2, forces:[{ x:1.5, label:"F", kind:"f", ang:45 }], arms:[{ x:1.5, label:"r", below:true }], cap:"szaggatott vonal: a hatásvonal" },
-            options:["A k: a tengelyből az erő hatásvonalára húzott merőleges", "Az r: a tengelytől a támadáspontig tartó szakasz", "Az erővektor hossza", "A rúd teljes hossza"],
+          { q:"Melyik képlettel számolod ki az ábrán látható erő forgatónyomatékát?",
+            fig:{ type:"torque", span:2, forces:[{ x:1.5, label:"F", kind:"f", ang:45 }], arms:[{ x:1.5, label:"k" }], cap:"az erő ferdén hat a rúdra" },
+            options:["M = F · k · sin α", "M = F · k", "M = F · k · cos α", "M = F / k"],
             correct:0,
-            explain:"Ferde erőnél az erőkar nem a rúd menti r, hanem a tengely és a szaggatott hatásvonal merőleges távolsága: k = r · sin α." }
+            explain:"Az erő ferdén, α szögben hat a rúdra, ezért kell a sin α is: M = F · k · sin α. Az M = F · k csak merőleges erőnél igaz." }
         ]
       },
     ]

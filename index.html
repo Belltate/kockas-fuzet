@@ -568,6 +568,7 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
   overflow-wrap:anywhere;background:var(--accent-soft);color:var(--ink);border-radius:var(--radius);padding:.45rem .65rem;margin:.35rem 0 .2rem}
 .ref-dates b{white-space:normal;overflow-wrap:anywhere}
 .column.ref-vaz{white-space:pre-wrap;overflow-wrap:anywhere;display:block}
+@media (max-width:560px){ .column.ref-vaz{font-size:.8rem} }
 .ph{font-style:italic;color:var(--accent-ink);text-decoration:underline dashed;text-decoration-thickness:1px;text-underline-offset:.2em}
 .ref-dates span{margin-bottom:.35rem}
 /* ---------- kereső a tananyaglistán ---------- */
@@ -929,9 +930,9 @@ h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1
   <!-- ============ NÉZET: PARANCSKERESŐ ============ -->
   <section id="view-ref" class="hidden">
     <button class="back" data-back="topics">← Tananyagok</button>
-    <p class="eyebrow" id="r-eyebrow"></p>
+    <p class="eyebrow" id="ref-eyebrow"></p>
     <h1>Parancskereső</h1>
-    <p class="tagline">Írd be a parancs nevét (pl. <b>b</b> vagy <b>&lt;img&gt;</b>), vagy azt, hogy mit csinál (pl. <b>félkövér</b>, <b>háttérszín</b>). Kattints egy sorra a bővebb leírásért és a példáért — a példában a <span class="ph">dőlt, aláhúzott</span> rész helyére írod a sajátodat.</p>
+    <p class="tagline" id="ref-tagline"></p>
     <div class="search">
       <input id="r-search" class="s-input" type="search" enterkeyhint="search" autocomplete="off"
              autocapitalize="off" spellcheck="false" aria-label="Keresés a parancsok közt"
@@ -4006,6 +4007,17 @@ const WEB_PARANCSOK = [
 
 /* a név és a keresés összevetéséhez: kisbetű, ékezet nélkül, a < > / " jelek nélkül (b = <b> = </b>) */
 const normParancs = s => normKer(s).replace(/[<>\/"]/g, " ").replace(/\s+/g, " ").trim();
+/* Python-neveknél a jelek számítanak (#, """, +=, []), csak a kezdő pont marad el: append = .append() */
+const normPy = s => normKer(s).replace(/\s+/g, " ").trim().replace(/^\./, "");
+/* a parancstárak: a lista függvényként, mert a PY_PARANCSOK később jön a fájlban */
+const PARANCS_TARAK = {
+  web: { parancsok: () => WEB_PARANCSOK, csoportok: () => WEB_CSOPORTOK, norm: normParancs,
+         tagline: 'Írd be a parancs nevét (pl. <b>b</b> vagy <b>&lt;img&gt;</b>), vagy azt, hogy mit csinál (pl. <b>félkövér</b>, <b>háttérszín</b>). Kattints egy sorra a bővebb leírásért és a példáért — a példában a <span class="ph">dőlt, aláhúzott</span> rész helyére írod a sajátodat.',
+         placeholder: "Parancs vagy leírás, pl. félkövér" },
+  py:  { parancsok: () => PY_PARANCSOK, csoportok: () => PY_CSOPORTOK, norm: normPy,
+         tagline: 'Írd be a parancs nevét (pl. <b>print</b> vagy <b>append</b>), vagy azt, hogy mit csinál (pl. <b>lista végére</b>, <b>véletlen</b>, <b>kilép</b>). Kattints egy sorra a bővebb leírásért és a példáért — a példában a <span class="ph">dőlt, aláhúzott</span> rész helyére írod a sajátodat.',
+         placeholder: "Parancs vagy leírás, pl. lista végére" }
+};
 /* szó elején van-e a keresett rész (előtte nem betű és nem szám) */
 function szoElejen(szoveg, q){
   for(let i = szoveg.indexOf(q); i >= 0; i = szoveg.indexOf(q, i + 1))
@@ -4013,8 +4025,8 @@ function szoElejen(szoveg, q){
   return false;
 }
 /* egy parancs pontszáma; a hol mondja meg, mi alapján lett találat (nev / rovid / kulcs / bovebb / szavak) */
-function parancsPont(c, q){
-  const nev = normParancs(c.nev), rov = normKer(c.rovid), bov = normKer(c.bovebb), ku = (c.kulcs || []).map(normKer);
+function parancsPont(c, q, norm = normParancs){
+  const nev = norm(c.nev), rov = normKer(c.rovid), bov = normKer(c.bovebb), ku = (c.kulcs || []).map(normKer);
   const minden = [nev, rov, bov].concat(ku).join(" ");
   if(!q.split(" ").every(x => minden.includes(x))) return null;
   let p = 0, hol = null, kulcs = null;
@@ -4032,10 +4044,10 @@ function parancsPont(c, q){
   return { c, p, hol, kulcs };
 }
 /* találatok csökkenő pontszám szerint (egyenlőnél a lista sorrendje); üres keresésre null */
-const parancsTalalatok = nyers => {
-  const q = normParancs(nyers || "");
+const parancsTalalatok = (nyers, tar = "web") => {
+  const T = PARANCS_TARAK[tar], q = T.norm(nyers || "");
   if(!q) return null;
-  return WEB_PARANCSOK.map(c => parancsPont(c, q)).filter(Boolean).sort((a, b) => b.p - a.p);
+  return T.parancsok().map(c => parancsPont(c, q, T.norm)).filter(Boolean).sort((a, b) => b.p - a.p);
 };
 
 /* a példákban «…» = ide a sajátodat írod; kiíráskor a jelek eltűnnek, a rész kiemelve látszik */
@@ -4058,13 +4070,12 @@ const WEB_VAZ = `<!DOCTYPE html>
     <p>«Bekezdés»</p>
 </body>
 </html>`;
-/* a jegyzet a WEB_PARANCSOK-ból: csoportonként a parancs, egy sor leírás és egy példa */
-function webJegyzet(){
-  let h = '<p class="lead">Minden HTML-tag, attribútum és CSS-beállítás, ami egy egyszerű, táblázatos weboldalhoz kell — csoportonként, egy sor leírással és példával. Ha egy parancsot keresel, a Parancskereső név és leírás alapján is megtalálja.</p>';
-  h += '<h2>Így épül fel egy weboldal</h2><div class="column ref-vaz">' + helyKit(escH(WEB_VAZ)) + '</div>';
-  h += '<div class="note"><p class="note-label">Páros és páratlan tag</p><p><b>Páros</b> tag: van nyitó és záró része, a tartalom közöttük van — <span class="m">&lt;p&gt; … &lt;/p&gt;</span>. <b>Páratlan</b> tag: nincs záró része — <span class="m">&lt;br&gt;</span>, <span class="m">&lt;img&gt;</span>, <span class="m">&lt;meta&gt;</span>. Az <b>attribútum</b> a nyitó tagba kerül: <span class="m">név="érték"</span>.</p><p>A példákban a <span class="ph">dőlt, aláhúzott</span> rész helyére írod a sajátodat — idézőjel csak ott kell, ahol a példában is van.</p></div>';
-  WEB_CSOPORTOK.forEach(g => {
-    const sor = WEB_PARANCSOK.filter(c => c.csop === g.id);
+/* jegyzet egy parancstárból: kódváz, megjegyzés, aztán csoportonként a parancs, egy sor leírás és egy példa */
+function parancsJegyzet(o){
+  let h = '<p class="lead">' + o.lead + '</p>';
+  h += '<h2>' + escH(o.vazCim) + '</h2><div class="column ref-vaz">' + helyKit(escH(o.vaz)) + '</div>' + o.note;
+  o.csoportok.forEach(g => {
+    const sor = o.parancsok.filter(c => c.csop === g.id);
     if(!sor.length) return;
     h += '<h2>' + escH(g.cim) + '</h2><div class="dates ref-dates">';
     sor.forEach(c => {
@@ -4074,6 +4085,240 @@ function webJegyzet(){
   });
   return h;
 }
+const webJegyzet = () => parancsJegyzet({
+  lead:"Minden HTML-tag, attribútum és CSS-beállítás, ami egy egyszerű, táblázatos weboldalhoz kell — csoportonként, egy sor leírással és példával. Ha egy parancsot keresel, a Parancskereső név és leírás alapján is megtalálja.",
+  vazCim:"Így épül fel egy weboldal", vaz:WEB_VAZ, csoportok:WEB_CSOPORTOK, parancsok:WEB_PARANCSOK,
+  note:'<div class="note"><p class="note-label">Páros és páratlan tag</p><p><b>Páros</b> tag: van nyitó és záró része, a tartalom közöttük van — <span class="m">&lt;p&gt; … &lt;/p&gt;</span>. <b>Páratlan</b> tag: nincs záró része — <span class="m">&lt;br&gt;</span>, <span class="m">&lt;img&gt;</span>, <span class="m">&lt;meta&gt;</span>. Az <b>attribútum</b> a nyitó tagba kerül: <span class="m">név="érték"</span>.</p><p>A példákban a <span class="ph">dőlt, aláhúzott</span> rész helyére írod a sajátodat — idézőjel csak ott kell, ahol a példában is van.</p></div>'
+});
+
+/* ================= PROGRAMOZÁS: PYTHON-PARANCSOK ================= */
+/* Ugyanúgy, mint a WEB_PARANCSOK: egy forrás a jegyzetnek (pyJegyzet) és a parancskeresőnek.
+   Új órai fájlnál az új parancsok új sorként jönnek ide; a példában «…» = ide a sajátodat írod. */
+const PY_CSOPORTOK = [
+  { id:"alap", cim:"Alapok" },
+  { id:"kiir", cim:"Bekérés és kiírás" },
+  { id:"tipus", cim:"Típusok és átalakítás" },
+  { id:"muv", cim:"Műveletek" },
+  { id:"felt", cim:"Elágazás és feltételek" },
+  { id:"ciklus", cim:"Ciklusok" },
+  { id:"hiba", cim:"Kivételkezelés" },
+  { id:"lista", cim:"Listák és véletlen számok" }
+];
+const PY_PARANCSOK = [
+  { nev:"#", csop:"alap", tipus:"komment",
+    rovid:"egysoros megjegyzés (komment): a # utáni részt a Python nem futtatja",
+    bovebb:"Magyarázatot írhatsz vele a kódba, vagy egy sort ideiglenesen kikapcsolhatsz. Állhat a sor elején vagy egy utasítás után is.",
+    pelda:"# «megjegyzés»\n«utasítás»  # «megjegyzés»", kulcs:["komment", "megjegyzés", "hashtag", "kettőskereszt", "kikapcsol", "comment"] },
+  { nev:"\"\"\"", csop:"alap", tipus:"komment",
+    rovid:"többsoros megjegyzés (komment): a két jel közti rész nem fut — ''' is jó",
+    bovebb:"Három idézőjellel nyitod és zárod (vagy három aposztróffal). Feladatleírást írhatsz bele, vagy egy egész kódrészt kikapcsolhatsz vele.",
+    pelda:"\"\"\"\n«több sornyi megjegyzés»\n\"\"\"", kulcs:["komment", "megjegyzés", "többsoros", "kikapcsol", "'''", "idézőjel"] },
+  { nev:"=", csop:"alap", tipus:"operátor",
+    rovid:"értékadás: a jobb oldal értéke a bal oldali változóba kerül",
+    bovebb:"Bal oldalon a változó neve (balérték), jobb oldalon az érték vagy kifejezés (jobbérték). Ha a változó még nem létezett, most jön létre; ha igen, az új érték felülírja a régit.",
+    pelda:"«változó» = «érték»", kulcs:["értékadás", "változó", "balérték", "jobbérték", "egyenlőségjel"] },
+  { nev:"behúzás", csop:"alap", tipus:"szabály",
+    rovid:"a kettőspont (:) utáni sorokat 4 szóközzel beljebb kezded — ez a blokk",
+    bovebb:"Az if, elif, else, while, for, try, except és finally sora kettősponttal végződik. Ami alá beljebb kerül, az tartozik hozzá; amelyik sor újra a szélén kezdődik, az már nem. Rossz behúzásnál a program el sem indul.",
+    pelda:"if «feltétel»:\n    «ez a blokk része»\n    «ez is»\n«ez már nem az if része»", kulcs:[":", "kettőspont", "blokk", "szóköz", "tab", "beljebb", "indentation"] },
+  { nev:"print()", csop:"kiir", tipus:"függvény",
+    rovid:"kiírja a képernyőre a zárójelbe írt értéket — vesszővel több is mehet",
+    bovebb:"Több értéket vesszővel elválasztva írhatsz bele, ezeket szóközzel elválasztva írja ki. Az üres print() csak egy sortörést ír ki.",
+    pelda:"print(«érték»)\nprint(«érték1», «érték2»)\nprint()", kulcs:["kiír", "kiírás", "képernyő", "megjelenít", "sortörés"] },
+  { nev:"input()", csop:"kiir", tipus:"függvény",
+    rovid:"bekér egy értéket a felhasználótól — mindig szövegként (str) adja vissza",
+    bovebb:"A zárójelbe írt szöveget kiírja kérdésként, és megvárja, amíg a felhasználó beír valamit és Entert nyom. Számhoz át kell alakítani: int(input(...)).",
+    pelda:"«változó» = input(\"«kérdés»: \")", kulcs:["bekér", "beolvas", "beírás", "felhasználó", "billentyűzet"] },
+  { nev:"sep=", csop:"kiir", tipus:"paraméter",
+    rovid:"a print több értéke közé ezt teszi (alapból szóköz)",
+    bovebb:"A print zárójelébe, az értékek után kerül. sep=\"\" esetén az értékek egybeírva jelennek meg, sep=\", \" esetén vesszővel elválasztva.",
+    pelda:"print(«a», «b», sep=\"«elválasztó»\")", kulcs:["elválasztó", "separator", "szóköz", "közé"] },
+  { nev:"end=", csop:"kiir", tipus:"paraméter",
+    rovid:"a print végére ezt teszi sortörés helyett — így egy sorba kerül a következő kiírás",
+    bovebb:"Alapból minden print után új sor kezdődik. end=\" \" esetén szóköz kerül a végére, end=\"\" esetén semmi, és a következő print ugyanabba a sorba ír. Ciklusban így lesz egy sorban az eredmény.",
+    pelda:"print(«érték», end=\"«a sor vége»\")", kulcs:["sortörés nélkül", "egy sorba", "sor vége", "új sor", "vége"] },
+  { nev:"f-string", csop:"kiir", tipus:"szövegformázás",
+    rovid:"szövegbe írt változók: f\"…{változó}…\" — a kapcsos zárójelben lévő érték kerül a helyére",
+    bovebb:"Az idézőjel elé egy f betű kerül. A {} közé változót vagy számolást is írhatsz, pl. {i + 1}; a többi rész szó szerint jelenik meg.",
+    pelda:"print(f\"«szöveg» {«változó»} «szöveg»\")", kulcs:["f\"", "formázott", "kapcsos zárójel", "{}", "behelyettesít"] },
+  { nev:"str", csop:"tipus", tipus:"adattípus",
+    rovid:"szöveg (sztring, karakterlánc) — idézőjelek között",
+    bovebb:"Idézőjelek közé írod (\"…\" vagy '…'). Az input() is mindig str-t ad vissza, ezért a beírt számmal addig nem lehet számolni, amíg át nem alakítod.",
+    pelda:"«változó» = \"«szöveg»\"", kulcs:["szöveg", "sztring", "karakterlánc", "string"] },
+  { nev:"int", csop:"tipus", tipus:"adattípus",
+    rovid:"egész szám, pl. 7, 0, -3",
+    bovebb:"Tizedesjegy nélküli szám. Két int összege, különbsége és szorzata is int.",
+    pelda:"«változó» = «egész szám, pl. 7»", kulcs:["egész", "integer", "szám"] },
+  { nev:"float", csop:"tipus", tipus:"adattípus",
+    rovid:"valós szám (lebegőpontos, tizedestört), pl. 3.5",
+    bovebb:"Tizedesvessző helyett tizedesPONT kell: 3.5. Az osztás (/) eredménye mindig float, akkor is, ha maradék nélkül megy: 28 / 7 = 4.0.",
+    pelda:"«változó» = «tizedestört, pl. 3.5»", kulcs:["valós", "lebegőpontos", "tizedes", "tört", "tizedespont"] },
+  { nev:"bool", csop:"tipus", tipus:"adattípus",
+    rovid:"logikai érték: True (igaz) vagy False (hamis)",
+    bovebb:"Nagy kezdőbetűvel kell írni. Az összehasonlítások (<, >, <=, >=) eredménye is bool, ezt használja az if és a while.",
+    pelda:"«változó» = True\n«változó» = False", kulcs:["logikai", "igaz", "hamis", "true", "false", "boolean"] },
+  { nev:"None", csop:"tipus", tipus:"érték",
+    rovid:"„semmi” érték: a változó létezik, de még nincs igazi értéke",
+    bovebb:"Akkor jó, ha egy változót előre létre kell hozni, és csak később (pl. egy if ágaiban) kap értéket. Nagy N-nel írjuk.",
+    pelda:"«változó» = None", kulcs:["semmi", "üres", "nincs érték", "kezdőérték"] },
+  { nev:"int()", csop:"tipus", tipus:"függvény",
+    rovid:"egész számmá alakít — pl. az input() által beírt szöveget",
+    bovebb:"Ha a szöveg nem egész szám (pl. „alma” vagy „3.5”), hibát (kivételt) dob — ezt try/except-tel lehet elkapni.",
+    pelda:"«változó» = int(input(\"«kérdés»: \"))", kulcs:["átalakít", "konvertál", "számmá", "egésszé", "típusváltás"] },
+  { nev:"str()", csop:"tipus", tipus:"függvény",
+    rovid:"szöveggé alakít — pl. egy számot, hogy + jellel szöveghez fűzd",
+    bovebb:"Szöveg és szám nem fűzhető össze + jellel, előbb a számot str()-rel szöveggé kell alakítani.",
+    pelda:"str(«szám»)\n\"«szöveg»\" + str(«szám»)", kulcs:["átalakít", "konvertál", "szöveggé", "típusváltás"] },
+  { nev:"+", csop:"muv", tipus:"operátor",
+    rovid:"összeadás — két szövegnél összefűzés (konkatenáció)",
+    bovebb:"Számoknál összead. Két szövegnél egymás után írja őket: \"al\" + \"ma\" = \"alma\". Szöveg és szám nem adható össze, a számot előbb str()-rel alakítsd át.",
+    pelda:"«szám1» + «szám2»\n\"«szöveg1»\" + \"«szöveg2»\"", kulcs:["összead", "összeadás", "plusz", "összefűz", "konkatenáció", "összeg"] },
+  { nev:"-", csop:"muv", tipus:"operátor",
+    rovid:"kivonás",
+    bovebb:"A bal oldali számból kivonja a jobb oldalit.",
+    pelda:"«szám1» - «szám2»", kulcs:["kivon", "mínusz", "különbség"] },
+  { nev:"*", csop:"muv", tipus:"operátor",
+    rovid:"szorzás",
+    bovebb:"Csillag a szorzásjel (nem x és nem pont).",
+    pelda:"«szám1» * «szám2»", kulcs:["szoroz", "szorzás", "csillag", "szorzat"] },
+  { nev:"/", csop:"muv", tipus:"operátor",
+    rovid:"osztás — az eredmény mindig float (valós szám)",
+    bovebb:"Akkor is tizedestörtet ad, ha maradék nélkül megy: 28 / 7 = 4.0. Ha egész kell, int()-tel alakítsd át.",
+    pelda:"«szám1» / «szám2»", kulcs:["oszt", "osztás", "per", "hányados"] },
+  { nev:"+=", csop:"muv", tipus:"operátor",
+    rovid:"növeli a változó értékét: x += 1 ugyanaz, mint x = x + 1",
+    bovebb:"Összetett értékadás: a változóhoz hozzáadja a jobb oldalt, és az eredményt vissza is írja bele. Ciklusban számlálásra és összegzésre használjuk.",
+    pelda:"«változó» += «mennyivel»", kulcs:["növel", "növelés", "összetett értékadás", "számláló", "összegzés"] },
+  { nev:"-=", csop:"muv", tipus:"operátor",
+    rovid:"csökkenti a változó értékét: x -= 1 ugyanaz, mint x = x - 1",
+    bovebb:"Összetett értékadás: kivonja a jobb oldalt, és az eredményt visszaírja a változóba. Visszafelé számlálásnál hasznos.",
+    pelda:"«változó» -= «mennyivel»", kulcs:["csökkent", "csökkentés", "összetett értékadás", "visszafelé"] },
+  { nev:"if", csop:"felt", tipus:"elágazás",
+    rovid:"ha a feltétel igaz, lefut a behúzott blokk",
+    bovebb:"A feltétel után kettőspont jön, a hozzá tartozó sorok 4 szóközzel beljebb. Ha a feltétel hamis, a blokk kimarad.",
+    pelda:"if «feltétel»:\n    «ha igaz»", kulcs:["ha", "feltétel", "elágazás", "döntés"] },
+  { nev:"elif", csop:"felt", tipus:"elágazás",
+    rovid:"különben ha: csak akkor vizsgálja, ha az előtte lévő feltételek hamisak voltak",
+    bovebb:"Az if után akárhány elif jöhet. Fentről lefelé halad, és az első igaz ág fut le — a többit már nem nézi.",
+    pelda:"if «feltétel1»:\n    «...»\nelif «feltétel2»:\n    «ha csak ez igaz»", kulcs:["különben ha", "else if", "több ág"] },
+  { nev:"else", csop:"felt", tipus:"elágazás",
+    rovid:"különben: akkor fut le, ha egyik feltétel sem teljesült",
+    bovebb:"Mindig az if/elif sor végére kerül, nincs utána feltétel, csak kettőspont. Nem kötelező.",
+    pelda:"if «feltétel»:\n    «ha igaz»\nelse:\n    «ha hamis»", kulcs:["különben", "egyébként", "minden más eset"] },
+  { nev:"< > <= >=", csop:"felt", tipus:"operátor",
+    rovid:"összehasonlítás: kisebb, nagyobb, kisebb vagy egyenlő, nagyobb vagy egyenlő",
+    bovebb:"Az eredménye True vagy False, ezért feltételbe (if, while) írjuk. A <= és >= jelben az egyenlőségjel mindig a második.",
+    pelda:"«a» < «b»\n«a» >= «b»", kulcs:["kisebb", "nagyobb", "egyenlő", "összehasonlít", "reláció"] },
+  { nev:"a <= x <= b", csop:"felt", tipus:"szerkezet",
+    rovid:"láncolt összehasonlítás: x a két határ közé esik-e",
+    bovebb:"Két feltétel egyben, ugyanaz, mint a <= x and x <= b. Tartományokhoz jó, pl. pontszámból érdemjegy.",
+    pelda:"if «alsó» <= «változó» <= «felső»:", kulcs:["láncolt", "határ", "tartomány", "között", "intervallum"] },
+  { nev:"and", csop:"felt", tipus:"logikai operátor",
+    rovid:"és: akkor igaz, ha mindkét feltétel igaz",
+    bovebb:"Két feltételt köt össze. Egymásba ágyazott if-ek helyett egy sorban is megírható vele a feltétel.",
+    pelda:"if «feltétel1» and «feltétel2»:", kulcs:["és", "mindkettő", "egyszerre", "logikai"] },
+  { nev:"or", csop:"felt", tipus:"logikai operátor",
+    rovid:"vagy: akkor igaz, ha legalább az egyik feltétel igaz",
+    bovebb:"Hibás érték kiszűrésére jó: ha az érték túl kicsi vagy túl nagy, akkor rossz.",
+    pelda:"if «feltétel1» or «feltétel2»:", kulcs:["vagy", "valamelyik", "legalább egy", "logikai"] },
+  { nev:"while", csop:"ciklus", tipus:"ciklus",
+    rovid:"elöltesztelő ciklus: amíg a feltétel igaz, újra és újra lefuttatja a ciklusmagot",
+    bovebb:"Minden kör előtt megnézi a feltételt. A ciklusmagban a feltétel változóját változtatni kell (pl. += 1), különben soha nem áll le.",
+    pelda:"while «feltétel»:\n    «ciklusmag»", kulcs:["amíg", "ciklus", "ismétlés", "iteráció", "ciklusmag"] },
+  { nev:"for", csop:"ciklus", tipus:"ciklus",
+    rovid:"számlálós ciklus: a ciklusváltozó sorra felveszi a range() értékeit",
+    bovebb:"for e in range(n) pontosan n-szer fut le. A ciklusváltozó (pl. e vagy i) minden körben a következő számot kapja.",
+    pelda:"for «i» in range(«hányszor»):\n    «ciklusmag»", kulcs:["ciklus", "ismétlés", "n-szer", "számlálós", "iteráció", "in"] },
+  { nev:"range()", csop:"ciklus", tipus:"függvény",
+    rovid:"számsorozat a for ciklushoz — a felső határ már nem tartozik bele",
+    bovebb:"range(n): 0, 1, … n-1 (n darab szám). range(a, b): a, a+1, … b-1. Ezért 1-től 10-ig range(1, 11) kell.",
+    pelda:"range(«n»)       # 0 … n-1\nrange(«a», «b»)  # a … b-1", kulcs:["tartomány", "sorozat", "felső határ", "számsor"] },
+  { nev:"break", csop:"ciklus", tipus:"utasítás",
+    rovid:"azonnal kilép a ciklusból",
+    bovebb:"A ciklus után következő sorral folytatódik a program. Leggyakrabban a while True mellett használjuk: ha jó az adat, kilépünk.",
+    pelda:"while True:\n    «...»\n    if «feltétel»:\n        break", kulcs:["kilép", "megszakít", "kilépés", "leállít"] },
+  { nev:"while True", csop:"ciklus", tipus:"szerkezet",
+    rovid:"végtelen ciklus, amiből break-kel lépünk ki — adatbekérésnél, amíg jó értéket nem kapunk",
+    bovebb:"A True feltétel mindig igaz, ezért magától sosem áll le. Addig kéri újra az adatot, amíg a break le nem futtatja.",
+    pelda:"while True:\n    «adat» = int(input(\"«kérdés»: \"))\n    if «jó az adat»:\n        break\n    print(\"«hibaüzenet»\")", kulcs:["végtelen", "adatbekérés", "ellenőrzés", "újra kér"] },
+  { nev:"ciklus a ciklusban", csop:"ciklus", tipus:"szerkezet",
+    rovid:"egymásba ágyazott ciklusok: a belső ciklus a külső minden körében végigfut",
+    bovebb:"Rajzolásnál a belső ciklus egy sort ír ki (end=\"\"-vel), a külső a sorokat lépteti; a sor végén az üres print() tör új sort.",
+    pelda:"for «i» in range(«sorok száma»):\n    for «j» in range(«egy sor hossza»):\n        print(\"«jel»\", end=\"\")\n    print()", kulcs:["egymásba ágyazott", "beágyazott", "belső ciklus", "külső ciklus", "négyzet", "rajzolás"] },
+  { nev:"try", csop:"hiba", tipus:"kivételkezelés",
+    rovid:"védett rész: ha itt hiba keletkezik, a program nem áll le, hanem az except fut",
+    bovebb:"Ide kerül az a kód, ahol hiba történhet (pl. int(input(...)) betűre). A try és az except kötelező, az else és a finally nem.",
+    pelda:"try:\n    «ami hibát okozhat»\nexcept:\n    «mi legyen hiba esetén»", kulcs:["kivétel", "hiba", "kivételkezelés", "védett", "hibakezelés"] },
+  { nev:"except", csop:"hiba", tipus:"kivételkezelés",
+    rovid:"mi történjen hiba esetén — csak akkor fut, ha a try-ban hiba volt",
+    bovebb:"Általában hibaüzenetet írunk ki benne. A while True ciklusban utána újra kéri az adatot.",
+    pelda:"except:\n    print(\"«hibaüzenet»\")", kulcs:["hiba", "elkap", "hibaüzenet", "kivétel"] },
+  { nev:"else (try után)", csop:"hiba", tipus:"kivételkezelés",
+    rovid:"akkor fut le, ha a try-ban NEM volt hiba",
+    bovebb:"Az except után jön, nem kötelező. Ide kerül, ami csak jó adattal mehet tovább (pl. a tartomány ellenőrzése, break).",
+    pelda:"try:\n    «...»\nexcept:\n    «hiba esetén»\nelse:\n    «ha nem volt hiba»", kulcs:["nem volt hiba", "sikeres", "hiba nélkül"] },
+  { nev:"finally", csop:"hiba", tipus:"kivételkezelés",
+    rovid:"mindenképpen lefut — akár volt hiba, akár nem",
+    bovebb:"A szerkezet legvégére kerül, nem kötelező.",
+    pelda:"try:\n    «...»\nexcept:\n    «...»\nfinally:\n    «mindig lefut»", kulcs:["mindenképpen", "mindig", "végül"] },
+  { nev:"[]", csop:"lista", tipus:"adattípus",
+    rovid:"lista: több érték egy változóban, sorrendben — [] az üres lista",
+    bovebb:"Az elemeket vesszővel elválasztva, szögletes zárójelbe írjuk. Az elemek a sorszámukkal (index) érhetők el, a lista bővíthető és üríthető.",
+    pelda:"«lista» = []\n«lista» = [«elem1», «elem2», «elem3»]", kulcs:["lista", "tömb", "szögletes zárójel", "üres lista", "list"] },
+  { nev:"lista[i]", csop:"lista", tipus:"indexelés",
+    rovid:"a lista i-edik eleme — az index 0-tól indul",
+    bovebb:"Az első elem a [0], az utolsó a [len(lista) - 1]. A szögletes zárójelbe számolás is írható, pl. lista[i * 7 + j].",
+    pelda:"«lista»[«index»]\n«lista»[0]   # az első elem", kulcs:["index", "elem", "sorszám", "hányadik", "szögletes zárójel"] },
+  { nev:".append()", csop:"lista", tipus:"metódus",
+    rovid:"a lista végére tesz egy új elemet",
+    bovebb:"Ponttal a lista neve után írjuk. Ciklusban így lehet egy listát elemenként feltölteni.",
+    pelda:"«lista».append(«új elem»)", kulcs:["hozzáad", "lista végére", "bővít", "feltölt", "beszúr"] },
+  { nev:".clear()", csop:"lista", tipus:"metódus",
+    rovid:"kiüríti a listát (minden elemét törli)",
+    bovebb:"A lista megmarad, csak üres lesz — utána újra feltölthető.",
+    pelda:"«lista».clear()", kulcs:["kiürít", "töröl", "ürít", "üres"] },
+  { nev:"len()", csop:"lista", tipus:"függvény",
+    rovid:"hány eleme van a listának (a lista hossza)",
+    bovebb:"Ciklusban azért jó, mert nem kell fejben tartani a lista méretét: while i < len(lista) vagy for i in range(len(lista)).",
+    pelda:"len(«lista»)", kulcs:["hossz", "elemszám", "méret", "hány elem", "length"] },
+  { nev:"tuple", csop:"lista", tipus:"adattípus",
+    rovid:"rendezett n-es: olyan, mint a lista, de az elemei nem változtathatók meg",
+    bovebb:"Kerek zárójelbe írjuk, vesszővel. Állandó adatokhoz jó, pl. a hét napjainak neve; az elemei ugyanúgy indexszel érhetők el: napok[0].",
+    pelda:"«név» = (\"«elem1»\", \"«elem2»\", \"«elem3»\")", kulcs:["rendezett n-es", "kerek zárójel", "nem módosítható", "állandó", "napok"] },
+  { nev:"import", csop:"lista", tipus:"utasítás",
+    rovid:"beemel egy modult (kész függvénygyűjteményt), pl. import random",
+    bovebb:"A program elejére írjuk. Utána a modul függvényeit a modul nevével és ponttal hívjuk: random.randint(...).",
+    pelda:"import «modul neve»", kulcs:["modul", "beemel", "betölt", "könyvtár"] },
+  { nev:"random.randint()", csop:"lista", tipus:"függvény",
+    rovid:"véletlen egész szám a két határ között — itt mindkét határ benne van",
+    bovebb:"Előbb kell az import random. A range()-dzsel ellentétben a felső határ is kijöhet: randint(1, 9) 1 és 9 közötti számot ad, a 9-et is beleértve.",
+    pelda:"import random\n«x» = random.randint(«alsó», «felső»)", kulcs:["véletlen", "véletlenszám", "random", "sorsol", "dobókocka"] }
+];
+const PY_VAZ = `# ha kell modul:
+import random
+
+# 1. adatbekérés, ellenőrzéssel
+while True:
+    try:
+        «szám» = int(input("«kérdés»: "))
+    except:
+        print("«hibaüzenet»")
+    else:
+        break
+
+# 2. feldolgozás
+if «feltétel»:
+    «ha igaz»
+else:
+    «ha hamis»
+
+# 3. kiírás
+print(f"«szöveg» {«szám»}")`;
+const pyJegyzet = () => parancsJegyzet({
+  lead:"Minden Python-parancs, amit az órákon használtunk — csoportonként, egy sor leírással és példával. Ha egy parancsot keresel, a Parancskereső név és leírás alapján is megtalálja.",
+  vazCim:"Így épül fel egy program", vaz:PY_VAZ, csoportok:PY_CSOPORTOK, parancsok:PY_PARANCSOK,
+  note:'<div class="note"><p class="note-label">Kettőspont és behúzás</p><p>Az <span class="m">if</span>, <span class="m">elif</span>, <span class="m">else</span>, <span class="m">while</span>, <span class="m">for</span>, <span class="m">try</span>, <span class="m">except</span>, <span class="m">finally</span> sora <b>kettősponttal</b> végződik, és ami hozzá tartozik, az <b>4 szóközzel beljebb</b> kerül. A <span class="m">#</span> utáni rész megjegyzés, nem fut.</p><p>A példákban a <span class="ph">dőlt, aláhúzott</span> rész helyére írod a sajátodat — idézőjel csak ott kell, ahol a példában is van (szövegnél).</p></div>'
+});
 
 const SUBJECTS = [
   {
@@ -8361,6 +8606,26 @@ const SUBJECTS = [
     ]
   },
   {
+    id: "prog",
+    name: "Programozás",
+    meta: "MGyZ · csoport_1",
+    desc: "Python — jegyzet minden parancsról, amit az órákon használtunk, és egy parancskereső.",
+    tagline: "A jegyzetben csoportonként minden Python-parancs példával; a parancskeresőben a parancs nevére vagy arra is kereshetsz, hogy mit csinál.",
+    groups: [
+      { kind:"python", label:"Python", note:"jegyzet és parancskereső" }
+    ],
+    topics: [
+      { kind:"python", id:"prog-jegyzet", lesson:true,
+        title:"Python — jegyzet",
+        sub:"minden parancs az órákról csoportonként, példákkal",
+        eyebrow:"Programozás · Python", heading:"Python — jegyzet",
+        body: pyJegyzet(), practice:["prog-kereso"], practiceLabel:"Keresés" },
+      { kind:"python", id:"prog-kereso", ref:"py",
+        title:"Parancskereső",
+        sub:"a parancs nevére vagy arra is kereshetsz, hogy mit csinál — pl. lista végére → .append()" }
+    ]
+  },
+  {
     id: "inttech",
     name: "Internetes technológiák",
     meta: "KA · csoport_1",
@@ -8375,18 +8640,20 @@ const SUBJECTS = [
         sub:"minden tag, attribútum és CSS-beállítás csoportonként, példákkal",
         eyebrow:"Internetes technológiák · HTML és CSS", heading:"HTML és CSS — jegyzet",
         body: webJegyzet(), practice:["inttech-kereso"], practiceLabel:"Keresés" },
-      { kind:"html", id:"inttech-kereso", ref:true,
+      { kind:"html", id:"inttech-kereso", ref:"web",
         title:"Parancskereső",
         sub:"a parancs nevére vagy arra is kereshetsz, hogy mit csinál — pl. félkövér → <b>" }
     ]
   },
-  { id:"soon-more", name:"További tárgyak", meta:"Bővíthető", desc:"Irodalom, magyar, programozás — amit kérsz, azt vesszük fel.", soon:true }
+  { id:"soon-more", name:"További tárgyak", meta:"Bővíthető", desc:"Irodalom, magyar — amit kérsz, azt vesszük fel.", soon:true }
 ];
 
 /* ================= FRISSÍTÉSEK (a jobb oldali fül) ================= */
 /* Minden tartalmi módosításnál új sor az ELEJÉRE: ido = helyi idő ("ÉÉÉÉ-HH-NN ÓÓ:PP"),
    tipus = "uj" (új tananyag) | "bovult" (meglévő lecke/kvíz bővült). A címet a SUBJECTS adja. */
 const FRISSITESEK = [
+  { ido:"2026-11-17 17:29", tantargy:"prog", id:"prog-jegyzet", tipus:"uj" },
+  { ido:"2026-11-17 17:29", tantargy:"prog", id:"prog-kereso",  tipus:"uj" },
   { ido:"2026-11-16 18:58", tantargy:"inttech", id:"inttech-jegyzet", tipus:"uj" },
   { ido:"2026-11-16 18:58", tantargy:"inttech", id:"inttech-kereso",  tipus:"uj" },
   { ido:"2026-11-16 18:36", tantargy:"angol", id:"lecke-3v",  tipus:"uj" },
@@ -9783,26 +10050,31 @@ function refSor(x, q){
   return it;
 }
 function renderRef(){
-  const nyers = $("r-search").value, tal = parancsTalalatok(nyers), wrap = $("r-list");
+  const T = PARANCS_TARAK[cur.refTar || "web"];
+  const nyers = $("r-search").value, tal = parancsTalalatok(nyers, cur.refTar || "web"), wrap = $("r-list");
   $("r-clear").classList.toggle("hidden", !nyers);
   wrap.textContent = "";
   if(!tal){                                     /* üres mező: minden parancs csoportonként */
     $("r-empty").classList.add("hidden");
-    WEB_CSOPORTOK.forEach(g => {
-      const sor = WEB_PARANCSOK.filter(c => c.csop === g.id);
+    T.csoportok().forEach(g => {
+      const sor = T.parancsok().filter(c => c.csop === g.id);
       if(!sor.length) return;
       wrap.appendChild(groupHeading({ label:g.cim, note:sor.length + " parancs" }));
       sor.forEach(c => wrap.appendChild(refSor({ c }, "")));
     });
     return;
   }
-  const q = normParancs(nyers);
+  const q = T.norm(nyers);
   tal.forEach(x => wrap.appendChild(refSor(x, q)));
   $("r-empty").classList.toggle("hidden", tal.length > 0);
 }
 function startRef(t){
   cur.topic = t;
-  $("r-eyebrow").textContent = cur.subject ? cur.subject.name + " · " + t.title : t.title;
+  cur.refTar = PARANCS_TARAK[t.ref] ? t.ref : "web";
+  const T = PARANCS_TARAK[cur.refTar];
+  $("ref-eyebrow").textContent = cur.subject ? cur.subject.name + " · " + t.title : t.title;
+  $("ref-tagline").innerHTML = T.tagline;
+  $("r-search").placeholder = T.placeholder;
   $("r-search").value = "";
   renderRef();
   show("ref");
